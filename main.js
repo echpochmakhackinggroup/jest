@@ -673,11 +673,13 @@ function openAppWindow(app, aboutTarget) {
     setTimeout(() => {
       const tabs = windowEl.querySelectorAll('.store-tab');
       const content = windowEl.querySelector('.store-content');
+      // УДАЛЕНО: Добавление вкладки Dev Lab
       function setTab(tab) {
         tabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         if (tab.dataset.tab === 'get') renderGet();
-        else renderInstalled();
+        else if (tab.dataset.tab === 'installed') renderInstalled();
+        // УДАЛЕНО: обработка devlab
       }
       tabs.forEach(tab => {
         tab.onclick = () => setTab(tab);
@@ -709,6 +711,7 @@ function openAppWindow(app, aboutTarget) {
               if (!installed.some(a => a.id === app.id)) installed.push(app);
               localStorage.setItem('storeInstalledApps', JSON.stringify(installed));
               setTab(tabs[1]);
+              updateDesktopAppIcons();
             };
             content.appendChild(div);
           });
@@ -739,10 +742,12 @@ function openAppWindow(app, aboutTarget) {
             localStorage.setItem('storeInstalledApps', JSON.stringify(installed));
             renderInstalled();
             renderDock();
+            updateDesktopAppIcons();
           };
           content.appendChild(div);
         });
       }
+      // УДАЛЕНО: функция renderDevLab
       setTab(tabs[0]);
     }, 0);
   }
@@ -2195,6 +2200,29 @@ window.addEventListener('DOMContentLoaded', () => {
     // Делаем иконку перетаскиваемой
     makeAppIconsDraggable();
   }
+
+  // --- Ярлыки установленных приложений из магазина ---
+  const installedApps = JSON.parse(localStorage.getItem('storeInstalledApps') || '[]');
+  const saved = localStorage.getItem('desktopAppPositions');
+  const positions = saved ? JSON.parse(saved) : {};
+  installedApps.forEach(app => {
+    if (!desktop.querySelector(`.app-icon[data-app="${app.id}"]`)) {
+      const icon = document.createElement('div');
+      icon.className = 'app-icon';
+      icon.dataset.app = app.id;
+      icon.style.position = 'absolute';
+      icon.style.left = positions[app.id]?.left || '0px';
+      icon.style.top = positions[app.id]?.top || '0px';
+      icon.innerHTML = `
+        <img src="${app.icon || 'https://img.icons8.com/ios-filled/50/000000/application-window.png'}" alt="${app.name || app.id}">
+        <span>${app.name || app.id}</span>
+      `;
+      desktop.appendChild(icon);
+      icon.addEventListener('dblclick', () => openAppWindow(app.id));
+    }
+  });
+  // После добавления новых иконок — сделать их перетаскиваемыми
+  makeAppIconsDraggable();
 });
 
 // 2. Добавить в Dock (по умолчанию закреплено)
@@ -2719,4 +2747,40 @@ function initBrowserTabs(win) {
   }
   renderTabs();
   renderTabContent();
+}
+
+// --- Ярлыки установленных приложений из магазина ---
+function updateDesktopAppIcons() {
+  const desktop = document.getElementById('desktop');
+  const installedApps = JSON.parse(localStorage.getItem('storeInstalledApps') || '[]');
+  const saved = localStorage.getItem('desktopAppPositions');
+  const positions = saved ? JSON.parse(saved) : {};
+  // Удаляем все ярлыки установленных приложений (кроме стандартных)
+  desktop.querySelectorAll('.app-icon').forEach(icon => {
+    const appId = icon.dataset.app;
+    // system-monitor и стандартные приложения не трогаем
+    if (appId === 'notes' || appId === 'browser' || appId === 'settings' || appId === 'smile-chat' || appId === 'store' || appId === 'system-monitor') return;
+    // Если приложение больше не установлено — удалить ярлык
+    if (!installedApps.some(a => a.id === appId)) {
+      icon.remove();
+    }
+  });
+  // Добавляем ярлыки для новых установленных приложений
+  installedApps.forEach(app => {
+    if (!desktop.querySelector(`.app-icon[data-app="${app.id}"]`)) {
+      const icon = document.createElement('div');
+      icon.className = 'app-icon';
+      icon.dataset.app = app.id;
+      icon.style.position = 'absolute';
+      icon.style.left = positions[app.id]?.left || '0px';
+      icon.style.top = positions[app.id]?.top || '0px';
+      icon.innerHTML = `
+        <img src="${app.icon || 'https://img.icons8.com/ios-filled/50/000000/application-window.png'}" alt="${app.name || app.id}">
+        <span>${app.name || app.id}</span>
+      `;
+      desktop.appendChild(icon);
+      icon.addEventListener('dblclick', () => openAppWindow(app.id));
+    }
+  });
+  makeAppIconsDraggable();
 }
