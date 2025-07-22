@@ -33,314 +33,145 @@ const appIcons=document.querySelectorAll(".app-icon");let zIndexCounter=100;appI
   const f=e.querySelector(".settings-avatar"),y=p;if(m&&y){let e,t=localStorage.getItem("userAvatarCode");t?(e=createAvatarElement(t,64),f.replaceWith(e),e.classList.add("settings-avatar")):getUserAvatar(y).then(t=>{localStorage.setItem("userAvatarCode",t),e=createAvatarElement(t,64),f.replaceWith(e),e.classList.add("settings-avatar")}),setTimeout(()=>{const e=document.querySelector(".settings-avatar");e&&(e.style.cursor="pointer",e.onclick=()=>openAppWindow("smile-editor"))},100)}else f.src.includes("pravatar")||(f.src="https://i.pravatar.cc/80?u=macosdemo");
   patchSettingsAppForPassword(e);
   const h=e.querySelectorAll(".cloud-save-checkbox"),w=e.querySelector("#cloud-save-btn"),v=e.querySelector("#cloud-restore-btn"),x=e.querySelector("#cloud-auto-restore");
-  let S=JSON.parse(localStorage.getItem("cloudSelectedKeys")||"[]");h.forEach(e=>{e.checked=S.includes(e.dataset.key),e.onchange=()=>{S=Array.from(h).filter(e=>e.checked).map(e=>e.dataset.key),localStorage.setItem("cloudSelectedKeys",JSON.stringify(S))}}),x.checked=JSON.parse(localStorage.getItem("cloudAutoRestore")||"false"),x.onchange=()=>{localStorage.setItem("cloudAutoRestore",x.checked)},w.onclick=async()=>{if(!p)return void showNotification("Войдите для сохранения");const e={};S.forEach(t=>{e[t]=localStorage.getItem(t)}),e.wallpaper=localStorage.getItem("settingsApp")?JSON.parse(localStorage.getItem("settingsApp")).wallpaper:"",e.cloudSelectedKeys=JSON.stringify(S),e.cloudAutoRestore=localStorage.getItem("cloudAutoRestore")||"false";try{await firebase.firestore().collection("save").doc(p).set(e,{merge:!0}),showNotification("Данные сохранены в ЖестьКлауд!")}catch(e){showNotification("Ошибка сохранения: "+(e.message||e))}},v.onclick=async()=>{if(p)try{const e=await firebase.firestore().collection("save").doc(p).get();if(e.exists){const t=e.data();if(S.forEach(e=>{void 0!==t[e]&&localStorage.setItem(e,t[e])}),void 0!==t.wallpaper){const e=JSON.parse(localStorage.getItem("settingsApp")||"{}");e.wallpaper=t.wallpaper,localStorage.setItem("settingsApp",JSON.stringify(e))}void 0!==t.cloudSelectedKeys&&localStorage.setItem("cloudSelectedKeys",t.cloudSelectedKeys),void 0!==t.cloudAutoRestore&&localStorage.setItem("cloudAutoRestore",t.cloudAutoRestore),showNotification("Данные восстановлены из ЖестьКлауд! Перезагрузите страницу.")}else showNotification("Нет сохранённых данных в ЖестьКлауд")}catch(e){showNotification("Ошибка восстановления: "+(e.message||e))}else showNotification("Войдите для восстановления")},window._cloudSyncInterval||(window._cloudSyncInterval=setInterval(async()=>{const e=localStorage.getItem("userEmail")||"",t=JSON.parse(localStorage.getItem("cloudAutoRestore")||"false");if(!e||!t)return;const o=JSON.parse(localStorage.getItem("cloudSelectedKeys")||"[]"),n={};o.forEach(e=>{n[e]=localStorage.getItem(e)}),n.wallpaper=localStorage.getItem("settingsApp")?JSON.parse(localStorage.getItem("settingsApp")).wallpaper:"",n.cloudSelectedKeys=localStorage.getItem("cloudSelectedKeys")||"[]",n.cloudAutoRestore=localStorage.getItem("cloudAutoRestore")||"false";try{await firebase.firestore().collection("save").doc(e).set(n,{merge:!0})}catch(e){}try{const t=await firebase.firestore().collection("save").doc(e).get();if(t.exists){const e=t.data();if(o.forEach(t=>{void 0!==e[t]&&localStorage.setItem(t,e[t])}),void 0!==e.wallpaper){const t=JSON.parse(localStorage.getItem("settingsApp")||"{}");t.wallpaper=e.wallpaper,localStorage.setItem("settingsApp",JSON.stringify(t))}void 0!==e.cloudSelectedKeys&&localStorage.setItem("cloudSelectedKeys",e.cloudSelectedKeys),void 0!==e.cloudAutoRestore&&localStorage.setItem("cloudAutoRestore",e.cloudAutoRestore)}}catch(e){}},6e4))}function showNotification(e){let t=document.getElementById("global-notification");t||(t=document.createElement("div"),t.id="global-notification",t.style.position="fixed",t.style.top="32px",t.style.right="32px",t.style.zIndex=99999,t.style.background="#fff",t.style.color="#222",t.style.padding="18px 32px",t.style.borderRadius="14px",t.style.boxShadow="0 4px 24px #0002",t.style.fontSize="18px",t.style.fontWeight="500",t.style.opacity="0",t.style.transition="opacity 0.3s",document.body.appendChild(t)),t.textContent=e,t.style.opacity="1",setTimeout(()=>{t.style.opacity="0"},5e3)}function initFirebaseFromSettings(){const e=JSON.parse(localStorage.getItem("settingsApp")||"{}");e.firebase&&e.firebase.apiKey&&(window.firebase?.apps?.length||window.firebase.initializeApp(e.firebase))}!function(){const e=JSON.parse(localStorage.getItem("settingsApp")||"{}");"dark"===e.theme?document.body.style.backgroundColor="#222":document.body.style.backgroundColor="",e.wallpaper?(document.body.style.backgroundImage=`url('${e.wallpaper}')`,document.body.style.backgroundSize="cover"):document.body.style.backgroundImage=""}(),initFirebaseFromSettings();let openWindowsStack=[];function bringWindowToFront(e){openWindowsStack=openWindowsStack.filter(t=>t!==e),openWindowsStack.push(e),openWindowsStack.forEach((e,t)=>{e.style.zIndex=100+t})}function removeWindowFromStack(e){openWindowsStack=openWindowsStack.filter(t=>t!==e),openWindowsStack.forEach((e,t)=>{e.style.zIndex=100+t})}function updateMenubarTime(){const e=document.getElementById("menubar-time");if(!e)return;const t=new Date,o=t.getHours().toString().padStart(2,"0"),n=t.getMinutes().toString().padStart(2,"0");e.textContent=`${o}:${n}`}function updateMenubarAvatar(){const e=document.getElementById("menubar-avatar");if(!e)return;let t=localStorage.getItem("userAvatarCode"),o=localStorage.getItem("userEmail")||"";if(e.innerHTML="",t&&"function"==typeof createAvatarElement){const o=createAvatarElement(t,28);o.style.width="28px",o.style.height="28px",o.style.borderRadius="50%",o.style.display="block",e.appendChild(o)}else e.innerHTML=`<img src="https://i.pravatar.cc/28?u=${o||"macosdemo"}" style="width:28px; height:28px; border-radius:50%; display:block;">`;e.title="Профиль/Аватар",e.style.cursor="pointer",e.onclick=()=>openAppWindow("smile-editor")}setInterval(updateMenubarTime,1e3),updateMenubarTime(),updateMenubarAvatar(),window.addEventListener("storage",updateMenubarAvatar),window.addEventListener("focus",updateMenubarAvatar);const menubarAppName=document.getElementById("menubar-appname"),menubarMenus=document.querySelectorAll(".menubar-menu"),menubarDropdowns=document.getElementById("menubar-dropdowns"),menubarApple=document.querySelector(".menubar-apple"),MENUBAR_MENUS={apple:[{label:"О системе",action:()=>openAppWindow("about","desktop")},{label:"Настройки…",action:()=>openAppWindow("settings")},{label:"Заблокировать экран",action:()=>showLockscreen("login")},{label:"Перезагрузить",action:()=>location.reload()},{label:"Выключить",action:()=>window.close()}],desktop:{file:[{label:"Создать папку",action:()=>showNotification("Папки пока нельзя создавать")},{label:"Показать рабочий стол",action:()=>{Object.values(openWindows).forEach(e=>e.style.display="none")}}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть все окна",action:()=>{Object.values(openWindows).forEach(e=>e.remove()),openWindowsStack=[]}}],help:[{label:"О Рабочем столе",action:()=>openAppWindow("about","desktop")}]},notes:{file:[{label:"Создать заметку",action:()=>{const e=openWindows.notes;e&&e.querySelector(".notes-add")?.click()}},{label:"Сохранить все",action:()=>showNotification("Все заметки уже сохраняются автоматически!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows.notes?.remove()}}],help:[{label:"О Заметках",action:()=>openAppWindow("about","notes")}]},browser:{file:[{label:"Открыть сайт",action:()=>showNotification("В браузере можно открыть сайт!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows.browser?.remove()}}],help:[{label:"О Браузере",action:()=>openAppWindow("about","browser")}]},settings:{file:[{label:"Сохранить настройки",action:()=>{showNotification("Настройки сохранены!")}}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows.settings?.remove()}}],help:[{label:"О Настройках",action:()=>openAppWindow("about","settings")}]},"smile-chat":{file:[{label:"Новая беседа",action:()=>showNotification("Создать чат можно в интерфейсе чата!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows["smile-chat"]?.remove()}}],help:[{label:"О ЖестьМесседж",action:()=>openAppWindow("about","smile-chat")}]},"smile-editor":{file:[{label:"Сохранить аватар",action:()=>showNotification("Аватар сохранён!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows["smile-editor"]?.remove()}}],help:[{label:"О ЖестьСМАЙЛЫ",action:()=>openAppWindow("about","smile-editor")}]},"system-monitor":{file:[{label:"Открыть мониторинг",action:()=>showNotification("Мониторинг открыт!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows["system-monitor"]?.remove()}}],help:[{label:"О Мониторинге",action:()=>openAppWindow("about","system-monitor")}]}};function getActiveApp(){if(openWindowsStack&&openWindowsStack.length){const e=openWindowsStack[openWindowsStack.length-1];return e?.dataset?.app||"desktop"}return"desktop"}function updateMenubarAppName(){const e=getActiveApp();menubarAppName.textContent=getAppTitle("desktop"===e?"desktop":e)}window.addEventListener("focus",updateMenubarAppName),window.addEventListener("click",updateMenubarAppName),window.addEventListener("keydown",updateMenubarAppName),setInterval(updateMenubarAppName,1e3);let menubarDropdownOpen=null;function closeMenubarDropdown(){menubarMenus.forEach(e=>e.classList.remove("active")),menubarDropdowns.innerHTML="",menubarDropdownOpen=null}function openMenubarDropdown(e,t){closeMenubarDropdown();let o=getActiveApp();if("apple"===e)var n=MENUBAR_MENUS.apple;else{o=o||"desktop";n=MENUBAR_MENUS[o]&&MENUBAR_MENUS[o][e]||[]}if(!n.length)return;t.classList.add("active");const s=t.getBoundingClientRect(),a=document.createElement("div");a.className="menubar-dropdown visible",a.style.left=s.left+"px",a.style.top=s.bottom+2+"px",n.forEach(e=>{const t=document.createElement("button");t.className="menubar-dropdown-item",t.textContent=e.label,t.onclick=t=>{t.stopPropagation(),closeMenubarDropdown(),e.action()},a.appendChild(t)}),menubarDropdowns.appendChild(a),menubarDropdownOpen=a}function initSmileChatApp(){const e=document.querySelectorAll(".smile-chat-category"),t=document.querySelector(".smile-chat-users"),o=document.querySelector(".smile-chat-messages"),n=document.querySelector(".smile-chat-form"),s=document.querySelector(".smile-chat-input");let a="general";window.selectedUser||(window.selectedUser=null);let i=null;const r=firebase.firestore(),l=localStorage.getItem("userEmail")||"",c=localStorage.getItem("userName")||"Пользователь",d=localStorage.getItem("userAvatarCode")||"",p=JSON.parse(localStorage.getItem("isLoggedIn")||"false");function u(){i&&(i(),i=null)}function m(){u(),t.innerHTML='<div style="color:#888; padding:16px;">Общий чат</div>',o.innerHTML="",i=r.collection("messages").where("type","==","general").orderBy("timestamp","asc").limit(100).onSnapshot(e=>{o.innerHTML="",e.forEach(e=>b(e.data(),e.id)),o.scrollTop=o.scrollHeight})}function g(e){u(),o.innerHTML="",i=r.collection("messages").where("type","==","private").where("participants","array-contains",l).orderBy("timestamp","asc").limit(200).onSnapshot(t=>{o.innerHTML="",t.forEach(t=>{const o=t.data();o.participants&&o.participants.includes(e)&&b(o,t.id)}),o.scrollTop=o.scrollHeight})}async function b(e,t){const n=document.createElement("div"),s=e.senderId===l;n.className="smile-chat-message"+(s?" sent":"");const a=createAvatarElement(e.avatarCode||"",36);a.classList.add("msg-avatar"),n.appendChild(a);const i=document.createElement("div");i.className="msg-content",i.innerHTML=`<div class='msg-name'>${e.from||"Гость"}</div>`,i.innerHTML+=`<div class='msg-text'>${e.text}</div>`,i.innerHTML+=`<div class='msg-time'>${e.timestamp&&e.timestamp.toDate?e.timestamp.toDate().toLocaleTimeString():""}</div>`,n.appendChild(i),o.appendChild(n)}e[0].onclick=()=>{a="general",window.selectedUser=null,e.forEach(e=>e.classList.remove("active")),e[0].classList.add("active"),m()},e[1].onclick=()=>{a="private",window.selectedUser=null,e.forEach(e=>e.classList.remove("active")),e[1].classList.add("active"),async function(){t.innerHTML='<div style="color:#888; padding:12px;">Загрузка...</div>';const o={};(await r.collection("messages").limit(200).get()).forEach(e=>{const t=e.data();"private"===t.type&&Array.isArray(t.participants)&&t.participants.forEach(e=>{e!==l&&(o[e]=!0)}),"general"===t.type&&t.senderId&&t.senderId!==l&&(o[t.senderId]=!0)}),(await r.collection("avatarka").get()).forEach(e=>{e.id!==l&&(o[e.id]=!0)}),t.innerHTML="",Object.keys(o).forEach(o=>{const n=document.createElement("div");n.className="smile-chat-user",n.style.display="flex",n.style.alignItems="center",n.style.gap="10px",n.style.cursor="pointer",n.style.padding="8px 16px",n.style.borderRadius="8px",n.onmouseenter=()=>n.style.background="#e6eaff",n.onmouseleave=()=>n.style.background="";const s=createAvatarElement(generateRandomAvatarCode(),32);n.appendChild(s),getUserAvatar(o).then(e=>{const t=createAvatarElement(e,32);n.replaceChild(t,s)}),n.innerHTML+=`<span>${o.split("@")[0]}</span>`,window.selectedUser===o&&n.classList.add("selected"),n.onclick=()=>{a="private",window.selectedUser=o,t.querySelectorAll(".smile-chat-user").forEach(e=>e.classList.remove("selected")),n.classList.add("selected"),g(o),e.forEach(e=>e.classList.remove("active")),e[1].classList.add("active")},t.appendChild(n)})}(),o.innerHTML='<div style="color:#888; text-align:center; margin-top:32px;">Выберите пользователя для чата</div>'},e[2].onclick=()=>{a="my",window.selectedUser=null,e.forEach(e=>e.classList.remove("active")),e[2].classList.add("active"),async function(){u(),t.innerHTML="",o.innerHTML="";const n=await r.collection("messages").where("participants","array-contains",l).orderBy("timestamp","desc").limit(200).get(),s={};n.forEach(e=>{const t=e.data();if("private"===t.type&&Array.isArray(t.participants)){const e=t.participants.find(e=>e!==l);e&&(s[e]=t)}}),Object.keys(s).forEach(o=>{const n=document.createElement("div");n.className="smile-chat-user",n.style.display="flex",n.style.alignItems="center",n.style.gap="10px",n.style.cursor="pointer",n.style.padding="8px 16px",n.style.borderRadius="8px",n.onmouseenter=()=>n.style.background="#e6eaff",n.onmouseleave=()=>n.style.background="",getUserAvatar(o).then(e=>{const t=createAvatarElement(e,32);n.prepend(t)}),n.innerHTML+=`<span>${o.split("@")[0]}</span>`,window.selectedUser===o&&n.classList.add("selected"),n.onclick=()=>{a="private",window.selectedUser=o,t.querySelectorAll(".smile-chat-user").forEach(e=>e.classList.remove("selected")),n.classList.add("selected"),g(o),e.forEach(e=>e.classList.remove("active")),e[1].classList.add("active")},t.appendChild(n)}),Object.keys(s).length||(t.innerHTML='<div style="color:#888; padding:12px;">Нет личных чатов</div>')}(),o.innerHTML='<div style="color:#888; text-align:center; margin-top:32px;">Выберите чат</div>'},n.onsubmit=async e=>{e.preventDefault();const t=s.value.trim();if(!t)return;if(!p)return void showNotification("Войдите для отправки сообщений");let n={text:t,from:c,senderId:l,avatarCode:d,timestamp:firebase.firestore.FieldValue.serverTimestamp()};if("general"===a)n.type="general",n.to="all";else{if("private"!==a||!window.selectedUser)return void showNotification("Выберите пользователя для личного чата");n.type="private",n.to=window.selectedUser,n.toName=window.selectedUser.split("@")[0],n.participants=[l,window.selectedUser].sort()}try{await r.collection("messages").add(n),s.value="",setTimeout(()=>{o.scrollTop=o.scrollHeight},100)}catch(e){showNotification("Ошибка отправки: "+(e.message||e))}},m()}function showLockscreen(e="auto"){const t=document.getElementById("lockscreen"),o=document.getElementById("lockscreen-modal"),n=document.getElementById("lockscreen-title"),s=document.getElementById("lockscreen-password"),a=document.getElementById("lockscreen-password2"),i=document.getElementById("lockscreen-submit"),r=document.getElementById("lockscreen-error"),l=document.getElementById("lockscreen-date"),c=document.getElementById("lockscreen-time"),d=document.getElementById("lockscreen-avatar"),p=document.getElementById("lockscreen-username"),u=document.getElementById("lockscreen-hint");function m(){const e=new Date;l.textContent=`${["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"][e.getDay()]}, ${e.getDate()} ${["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][e.getMonth()]}`,c.textContent=e.getHours().toString().padStart(2,"0")+":"+e.getMinutes().toString().padStart(2,"0")}o.style.display="none",t.style.display="",document.body.style.overflow="hidden",s.value="",a.value="",r.textContent="",a.style.display="none",s.type="password",a.type="password",s.disabled=!1,a.disabled=!1,i.disabled=!1,m(),t._interval||(t._interval=setInterval(m,1e3));let g=localStorage.getItem("userName")||"Пользователь",b=localStorage.getItem("userAvatarCode");if(d.innerHTML="",b&&"function"==typeof createAvatarElement){const e=createAvatarElement(b,72);e.style.width=e.style.height="72px",e.style.borderRadius="50%",d.appendChild(e)}else d.innerHTML=`<img src='https://i.pravatar.cc/72?u=${g}' style='width:72px; height:72px; border-radius:50%;'>`;function f(){o.style.display="",setTimeout(()=>s.focus(),100)}p.textContent=g,u.textContent="create"===e||"change"===e?"":"Touch ID или пароль",document.getElementById("lockscreen-user-block").onclick=()=>{"none"===o.style.display&&f()},"create"!==e&&"change"!==e||f(),"create"===e?(n.textContent="Создайте пароль для входа в ЖестьOS",s.placeholder="Пароль",a.style.display="",a.placeholder="Повторите пароль",i.textContent="Создать",i.onclick=()=>{s.value.length<4?r.textContent="Минимум 4 символа":s.value===a.value?(localStorage.setItem("osPassword",btoa(s.value)),t.style.display="none",document.body.style.overflow=""):r.textContent="Пароли не совпадают"}):"change"===e?(n.textContent="Сменить пароль",s.placeholder="Новый пароль",a.style.display="",a.placeholder="Повторите пароль",i.textContent="Сменить",i.onclick=()=>{s.value.length<4?r.textContent="Минимум 4 символа":s.value===a.value?(localStorage.setItem("osPassword",btoa(s.value)),t.style.display="none",document.body.style.overflow="",showNotification("Пароль изменён!")):r.textContent="Пароли не совпадают"}):(n.textContent="Введите пароль для входа в ЖестьOS",s.placeholder="Пароль",i.textContent="Войти",i.onclick=()=>{const e=localStorage.getItem("osPassword");e&&btoa(s.value)===e?(t.style.display="none",document.body.style.overflow=""):r.textContent="Неверный пароль"}),s.onkeydown=a.onkeydown=e=>{"Enter"===e.key&&i.onclick()}}function patchSettingsAppForPassword(e){let t=e.querySelector(".settings-section.password");if(!t){t=document.createElement("div"),t.className="settings-section password",t.innerHTML='<div class="settings-title">Пароль системы</div>';const o=Array.from(e.querySelectorAll(".settings-section")).find(e=>e.textContent.includes("Технические характеристики"));if(o&&o.parentNode)o.nextSibling?o.parentNode.insertBefore(t,o.nextSibling):o.parentNode.appendChild(t);else{const o=e.querySelector(".settings-app");o?(o.appendChild(t),console.warn("Техническая секция не найдена, кнопка смены пароля добавлена в конец настроек.")):(e.appendChild(t),console.error("settings-app не найден, кнопка смены пароля добавлена в конец окна."))}}let o=e.querySelector("#change-password-btn");o||(o=document.createElement("button"),o.id="change-password-btn",o.textContent="Сменить пароль",o.className="settings-btn-password",o.style.display="block",o.style.margin="18px 0 0 0",o.style.padding="10px 32px",o.style.borderRadius="8px",o.style.border="none",o.style.background="#e6eaff",o.style.color="#007aff",o.style.fontSize="16px",o.style.fontWeight="500",o.style.cursor="pointer",o.style.boxShadow="0 2px 8px #0001",o.onmouseenter=()=>o.style.background="#d0e0ff",o.onmouseleave=()=>o.style.background="#e6eaff",o.onclick=()=>showLockscreen("change"),t.appendChild(o))}function initSystemMonitorApp(e){const t=e.querySelectorAll(".system-monitor-tab"),o=e.querySelector(".system-monitor-content");
-  // Добавим новую вкладку "system"
-  if (!e.querySelector('.system-monitor-tab[data-tab="system"]')) {
-    const btn = document.createElement('button');
-    btn.className = 'system-monitor-tab';
-    btn.dataset.tab = 'system';
-    btn.textContent = 'Система';
-    e.querySelector('.system-monitor-tabs').appendChild(btn);
-  }
-  let n=null;
-  function s(){
-    // Главный поток JS
-    const processes = [
-      {
-        pid: 1000,
-        type: 'JS',
-        name: 'Главный поток',
-        status: 'Работает',
-        info: `Аптайм: ${(performance.now()/1000).toFixed(1)} сек`,
-        mem: window.performance?.memory ? (performance.memory.usedJSHeapSize/1024/1024).toFixed(1) + ' МБ' : '—'
-      }
+  let S=JSON.parse(localStorage.getItem("cloudSelectedKeys")||"[]");h.forEach(e=>{e.checked=S.includes(e.dataset.key),e.onchange=()=>{S=Array.from(h).filter(e=>e.checked).map(e=>e.dataset.key),localStorage.setItem("cloudSelectedKeys",JSON.stringify(S))}}),x.checked=JSON.parse(localStorage.getItem("cloudAutoRestore")||"false"),x.onchange=()=>{localStorage.setItem("cloudAutoRestore",x.checked)},w.onclick=async()=>{if(!p)return void showNotification("Войдите для сохранения");const e={};S.forEach(t=>{e[t]=localStorage.getItem(t)}),e.wallpaper=localStorage.getItem("settingsApp")?JSON.parse(localStorage.getItem("settingsApp")).wallpaper:"",e.cloudSelectedKeys=JSON.stringify(S),e.cloudAutoRestore=localStorage.getItem("cloudAutoRestore")||"false";try{await firebase.firestore().collection("save").doc(p).set(e,{merge:!0}),showNotification("Данные сохранены в ЖестьКлауд!")}catch(e){showNotification("Ошибка сохранения: "+(e.message||e))}},v.onclick=async()=>{if(p)try{const e=await firebase.firestore().collection("save").doc(p).get();if(e.exists){const t=e.data();if(S.forEach(e=>{void 0!==t[e]&&localStorage.setItem(e,t[e])}),void 0!==t.wallpaper){const e=JSON.parse(localStorage.getItem("settingsApp")||"{}");e.wallpaper=t.wallpaper,localStorage.setItem("settingsApp",JSON.stringify(e))}void 0!==t.cloudSelectedKeys&&localStorage.setItem("cloudSelectedKeys",t.cloudSelectedKeys),void 0!==t.cloudAutoRestore&&localStorage.setItem("cloudAutoRestore",t.cloudAutoRestore),showNotification("Данные восстановлены из ЖестьКлауд! Перезагрузите страницу.")}else showNotification("Нет сохранённых данных в ЖестьКлауд")}catch(e){showNotification("Ошибка восстановления: "+(e.message||e))}else showNotification("Войдите для восстановления")},window._cloudSyncInterval||(window._cloudSyncInterval=setInterval(async()=>{const e=localStorage.getItem("userEmail")||"",t=JSON.parse(localStorage.getItem("cloudAutoRestore")||"false");if(!e||!t)return;const o=JSON.parse(localStorage.getItem("cloudSelectedKeys")||"[]"),n={};o.forEach(e=>{n[e]=localStorage.getItem(e)}),n.wallpaper=localStorage.getItem("settingsApp")?JSON.parse(localStorage.getItem("settingsApp")).wallpaper:"",n.cloudSelectedKeys=localStorage.getItem("cloudSelectedKeys")||"[]",n.cloudAutoRestore=localStorage.getItem("cloudAutoRestore")||"false";try{await firebase.firestore().collection("save").doc(e).set(n,{merge:!0})}catch(e){}try{const t=await firebase.firestore().collection("save").doc(e).get();if(t.exists){const e=t.data();if(o.forEach(t=>{void 0!==e[t]&&localStorage.setItem(t,e[t])}),void 0!==e.wallpaper){const t=JSON.parse(localStorage.getItem("settingsApp")||"{}");t.wallpaper=e.wallpaper,localStorage.setItem("settingsApp",JSON.stringify(t))}void 0!==e.cloudSelectedKeys&&localStorage.setItem("cloudSelectedKeys",e.cloudSelectedKeys),void 0!==e.cloudAutoRestore&&localStorage.setItem("cloudAutoRestore",e.cloudAutoRestore)}}catch(e){}},6e4))}function showNotification(e){let t=document.getElementById("global-notification");t||(t=document.createElement("div"),t.id="global-notification",t.style.position="fixed",t.style.top="32px",t.style.right="32px",t.style.zIndex=99999,t.style.background="#fff",t.style.color="#222",t.style.padding="18px 32px",t.style.borderRadius="14px",t.style.boxShadow="0 4px 24px #0002",t.style.fontSize="18px",t.style.fontWeight="500",t.style.opacity="0",t.style.transition="opacity 0.3s",document.body.appendChild(t)),t.textContent=e,t.style.opacity="1",setTimeout(()=>{t.style.opacity="0"},5e3)}function initFirebaseFromSettings(){const e=JSON.parse(localStorage.getItem("settingsApp")||"{}");e.firebase&&e.firebase.apiKey&&(window.firebase?.apps?.length||window.firebase.initializeApp(e.firebase))}!function(){const e=JSON.parse(localStorage.getItem("settingsApp")||"{}");"dark"===e.theme?document.body.style.backgroundColor="#222":document.body.style.backgroundColor="",e.wallpaper?(document.body.style.backgroundImage=`url('${e.wallpaper}')`,document.body.style.backgroundSize="cover"):document.body.style.backgroundImage=""}(),initFirebaseFromSettings();let openWindowsStack=[];function bringWindowToFront(e){openWindowsStack=openWindowsStack.filter(t=>t!==e),openWindowsStack.push(e),openWindowsStack.forEach((e,t)=>{e.style.zIndex=100+t})}function removeWindowFromStack(e){openWindowsStack=openWindowsStack.filter(t=>t!==e),openWindowsStack.forEach((e,t)=>{e.style.zIndex=100+t})}function updateMenubarTime(){const e=document.getElementById("menubar-time");if(!e)return;const t=new Date,o=t.getHours().toString().padStart(2,"0"),n=t.getMinutes().toString().padStart(2,"0");e.textContent=`${o}:${n}`}function updateMenubarAvatar(){const e=document.getElementById("menubar-avatar");if(!e)return;let t=localStorage.getItem("userAvatarCode"),o=localStorage.getItem("userEmail")||"";if(e.innerHTML="",t&&"function"==typeof createAvatarElement){const o=createAvatarElement(t,28);o.style.width="28px",o.style.height="28px",o.style.borderRadius="50%",o.style.display="block",e.appendChild(o)}else e.innerHTML=`<img src="https://i.pravatar.cc/28?u=${o||"macosdemo"}" style="width:28px; height:28px; border-radius:50%; display:block;">`;e.title="Профиль/Аватар",e.style.cursor="pointer",e.onclick=()=>openAppWindow("smile-editor")}setInterval(updateMenubarTime,1e3),updateMenubarTime(),updateMenubarAvatar(),window.addEventListener("storage",updateMenubarAvatar),window.addEventListener("focus",updateMenubarAvatar);const menubarAppName=document.getElementById("menubar-appname"),menubarMenus=document.querySelectorAll(".menubar-menu"),menubarDropdowns=document.getElementById("menubar-dropdowns"),menubarApple=document.querySelector(".menubar-apple"),MENUBAR_MENUS={apple:[{label:"О системе",action:()=>openAppWindow("about","desktop")},{label:"Настройки…",action:()=>openAppWindow("settings")},{label:"Заблокировать экран",action:()=>showLockscreen("login")},{label:"Перезагрузить",action:()=>location.reload()},{label:"Выключить",action:()=>window.close()}],desktop:{file:[{label:"Создать папку",action:()=>showNotification("Папки пока нельзя создавать")},{label:"Показать рабочий стол",action:()=>{Object.values(openWindows).forEach(e=>e.style.display="none")}}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть все окна",action:()=>{Object.values(openWindows).forEach(e=>e.remove()),openWindowsStack=[]}}],help:[{label:"О Рабочем столе",action:()=>openAppWindow("about","desktop")}]},notes:{file:[{label:"Создать заметку",action:()=>{const e=openWindows.notes;e&&e.querySelector(".notes-add")?.click()}},{label:"Сохранить все",action:()=>showNotification("Все заметки уже сохраняются автоматически!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows.notes?.remove()}}],help:[{label:"О Заметках",action:()=>openAppWindow("about","notes")}]},browser:{file:[{label:"Открыть сайт",action:()=>showNotification("В браузере можно открыть сайт!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows.browser?.remove()}}],help:[{label:"О Браузере",action:()=>openAppWindow("about","browser")}]},settings:{file:[{label:"Сохранить настройки",action:()=>{showNotification("Настройки сохранены!")}}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows.settings?.remove()}}],help:[{label:"О Настройках",action:()=>openAppWindow("about","settings")}]},"smile-chat":{file:[{label:"Новая беседа",action:()=>showNotification("Создать чат можно в интерфейсе чата!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows["smile-chat"]?.remove()}}],help:[{label:"О ЖестьМесседж",action:()=>openAppWindow("about","smile-chat")}]},"smile-editor":{file:[{label:"Сохранить аватар",action:()=>showNotification("Аватар сохранён!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows["smile-editor"]?.remove()}}],help:[{label:"О ЖестьСМАЙЛЫ",action:()=>openAppWindow("about","smile-editor")}]},"system-monitor":{file:[{label:"Открыть мониторинг",action:()=>showNotification("Мониторинг открыт!")}],edit:[{label:"Вырезать",action:()=>document.execCommand("cut")},{label:"Копировать",action:()=>document.execCommand("copy")},{label:"Вставить",action:()=>document.execCommand("paste")}],window:[{label:"Закрыть окно",action:()=>{openWindows["system-monitor"]?.remove()}}],help:[{label:"О Мониторинге",action:()=>openAppWindow("about","system-monitor")}]}};function getActiveApp(){if(openWindowsStack&&openWindowsStack.length){const e=openWindowsStack[openWindowsStack.length-1];return e?.dataset?.app||"desktop"}return"desktop"}function updateMenubarAppName(){const e=getActiveApp();menubarAppName.textContent=getAppTitle("desktop"===e?"desktop":e)}window.addEventListener("focus",updateMenubarAppName),window.addEventListener("click",updateMenubarAppName),window.addEventListener("keydown",updateMenubarAppName),setInterval(updateMenubarAppName,1e3);let menubarDropdownOpen=null;function closeMenubarDropdown(){menubarMenus.forEach(e=>e.classList.remove("active")),menubarDropdowns.innerHTML="",menubarDropdownOpen=null}function openMenubarDropdown(e,t){closeMenubarDropdown();let o=getActiveApp();if("apple"===e)var n=MENUBAR_MENUS.apple;else{o=o||"desktop";n=MENUBAR_MENUS[o]&&MENUBAR_MENUS[o][e]||[]}if(!n.length)return;t.classList.add("active");const s=t.getBoundingClientRect(),a=document.createElement("div");a.className="menubar-dropdown visible",a.style.left=s.left+"px",a.style.top=s.bottom+2+"px",n.forEach(e=>{const t=document.createElement("button");t.className="menubar-dropdown-item",t.textContent=e.label,t.onclick=t=>{t.stopPropagation(),closeMenubarDropdown(),e.action()},a.appendChild(t)}),menubarDropdowns.appendChild(a),menubarDropdownOpen=a}function initSmileChatApp(){const e=document.querySelectorAll(".smile-chat-category"),t=document.querySelector(".smile-chat-users"),o=document.querySelector(".smile-chat-messages"),n=document.querySelector(".smile-chat-form"),s=document.querySelector(".smile-chat-input");let a="general";window.selectedUser||(window.selectedUser=null);let i=null;const r=firebase.firestore(),l=localStorage.getItem("userEmail")||"",c=localStorage.getItem("userName")||"Пользователь",d=localStorage.getItem("userAvatarCode")||"",p=JSON.parse(localStorage.getItem("isLoggedIn")||"false");function u(){i&&(i(),i=null)}function m(){u(),t.innerHTML='<div style="color:#888; padding:16px;">Общий чат</div>',o.innerHTML="",i=r.collection("messages").where("type","==","general").orderBy("timestamp","asc").limit(100).onSnapshot(e=>{o.innerHTML="",e.forEach(e=>b(e.data(),e.id)),o.scrollTop=o.scrollHeight})}function g(e){u(),o.innerHTML="",i=r.collection("messages").where("type","==","private").where("participants","array-contains",l).orderBy("timestamp","asc").limit(200).onSnapshot(t=>{o.innerHTML="",t.forEach(t=>{const o=t.data();o.participants&&o.participants.includes(e)&&b(o,t.id)}),o.scrollTop=o.scrollHeight})}async function b(e,t){const n=document.createElement("div"),s=e.senderId===l;n.className="smile-chat-message"+(s?" sent":"");const a=createAvatarElement(e.avatarCode||"",36);a.classList.add("msg-avatar"),n.appendChild(a);const i=document.createElement("div");i.className="msg-content",i.innerHTML=`<div class='msg-name'>${e.from||"Гость"}</div>`,i.innerHTML+=`<div class='msg-text'>${e.text}</div>`,i.innerHTML+=`<div class='msg-time'>${e.timestamp&&e.timestamp.toDate?e.timestamp.toDate().toLocaleTimeString():""}</div>`,n.appendChild(i),o.appendChild(n)}e[0].onclick=()=>{a="general",window.selectedUser=null,e.forEach(e=>e.classList.remove("active")),e[0].classList.add("active"),m()},e[1].onclick=()=>{a="private",window.selectedUser=null,e.forEach(e=>e.classList.remove("active")),e[1].classList.add("active"),async function(){t.innerHTML='<div style="color:#888; padding:12px;">Загрузка...</div>';const o={};(await r.collection("messages").limit(200).get()).forEach(e=>{const t=e.data();"private"===t.type&&Array.isArray(t.participants)&&t.participants.forEach(e=>{e!==l&&(o[e]=!0)}),"general"===t.type&&t.senderId&&t.senderId!==l&&(o[t.senderId]=!0)}),(await r.collection("avatarka").get()).forEach(e=>{e.id!==l&&(o[e.id]=!0)}),t.innerHTML="",Object.keys(o).forEach(o=>{const n=document.createElement("div");n.className="smile-chat-user",n.style.display="flex",n.style.alignItems="center",n.style.gap="10px",n.style.cursor="pointer",n.style.padding="8px 16px",n.style.borderRadius="8px",n.onmouseenter=()=>n.style.background="#e6eaff",n.onmouseleave=()=>n.style.background="";const s=createAvatarElement(generateRandomAvatarCode(),32);n.appendChild(s),getUserAvatar(o).then(e=>{const t=createAvatarElement(e,32);n.replaceChild(t,s)}),n.innerHTML+=`<span>${o.split("@")[0]}</span>`,window.selectedUser===o&&n.classList.add("selected"),n.onclick=()=>{a="private",window.selectedUser=o,t.querySelectorAll(".smile-chat-user").forEach(e=>e.classList.remove("selected")),n.classList.add("selected"),g(o),e.forEach(e=>e.classList.remove("active")),e[1].classList.add("active")},t.appendChild(n)})}(),o.innerHTML='<div style="color:#888; text-align:center; margin-top:32px;">Выберите пользователя для чата</div>'},e[2].onclick=()=>{a="my",window.selectedUser=null,e.forEach(e=>e.classList.remove("active")),e[2].classList.add("active"),async function(){u(),t.innerHTML="",o.innerHTML="";const n=await r.collection("messages").where("participants","array-contains",l).orderBy("timestamp","desc").limit(200).get(),s={};n.forEach(e=>{const t=e.data();if("private"===t.type&&Array.isArray(t.participants)){const e=t.participants.find(e=>e!==l);e&&(s[e]=t)}}),Object.keys(s).forEach(o=>{const n=document.createElement("div");n.className="smile-chat-user",n.style.display="flex",n.style.alignItems="center",n.style.gap="10px",n.style.cursor="pointer",n.style.padding="8px 16px",n.style.borderRadius="8px",n.onmouseenter=()=>n.style.background="#e6eaff",n.onmouseleave=()=>n.style.background="",getUserAvatar(o).then(e=>{const t=createAvatarElement(e,32);n.prepend(t)}),n.innerHTML+=`<span>${o.split("@")[0]}</span>`,window.selectedUser===o&&n.classList.add("selected"),n.onclick=()=>{a="private",window.selectedUser=o,t.querySelectorAll(".smile-chat-user").forEach(e=>e.classList.remove("selected")),n.classList.add("selected"),g(o),e.forEach(e=>e.classList.remove("active")),e[1].classList.add("active")},t.appendChild(n)}),Object.keys(s).length||(t.innerHTML='<div style="color:#888; padding:12px;">Нет личных чатов</div>')}(),o.innerHTML='<div style="color:#888; text-align:center; margin-top:32px;">Выберите чат</div>'},n.onsubmit=async e=>{e.preventDefault();const t=s.value.trim();if(!t)return;if(!p)return void showNotification("Войдите для отправки сообщений");let n={text:t,from:c,senderId:l,avatarCode:d,timestamp:firebase.firestore.FieldValue.serverTimestamp()};if("general"===a)n.type="general",n.to="all";else{if("private"!==a||!window.selectedUser)return void showNotification("Выберите пользователя для личного чата");n.type="private",n.to=window.selectedUser,n.toName=window.selectedUser.split("@")[0],n.participants=[l,window.selectedUser].sort()}try{await r.collection("messages").add(n),s.value="",setTimeout(()=>{o.scrollTop=o.scrollHeight},100)}catch(e){showNotification("Ошибка отправки: "+(e.message||e))}},m()}function showLockscreen(e="auto"){const t=document.getElementById("lockscreen"),o=document.getElementById("lockscreen-modal"),n=document.getElementById("lockscreen-title"),s=document.getElementById("lockscreen-password"),a=document.getElementById("lockscreen-password2"),i=document.getElementById("lockscreen-submit"),r=document.getElementById("lockscreen-error"),l=document.getElementById("lockscreen-date"),c=document.getElementById("lockscreen-time"),d=document.getElementById("lockscreen-avatar"),p=document.getElementById("lockscreen-username"),u=document.getElementById("lockscreen-hint");function m(){const e=new Date;l.textContent=`${["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"][e.getDay()]}, ${e.getDate()} ${["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][e.getMonth()]}`,c.textContent=e.getHours().toString().padStart(2,"0")+":"+e.getMinutes().toString().padStart(2,"0")}o.style.display="none",t.style.display="",document.body.style.overflow="hidden",s.value="",a.value="",r.textContent="",a.style.display="none",s.type="password",a.type="password",s.disabled=!1,a.disabled=!1,i.disabled=!1,m(),t._interval||(t._interval=setInterval(m,1e3));let g=localStorage.getItem("userName")||"Пользователь",b=localStorage.getItem("userAvatarCode");if(d.innerHTML="",b&&"function"==typeof createAvatarElement){const e=createAvatarElement(b,72);e.style.width=e.style.height="72px",e.style.borderRadius="50%",d.appendChild(e)}else d.innerHTML=`<img src='https://i.pravatar.cc/72?u=${g}' style='width:72px; height:72px; border-radius:50%;'>`;function f(){o.style.display="",setTimeout(()=>s.focus(),100)}p.textContent=g,u.textContent="create"===e||"change"===e?"":"Touch ID или пароль",document.getElementById("lockscreen-user-block").onclick=()=>{"none"===o.style.display&&f()},"create"!==e&&"change"!==e||f(),"create"===e?(n.textContent="Создайте пароль для входа в ЖестьOS",s.placeholder="Пароль",a.style.display="",a.placeholder="Повторите пароль",i.textContent="Создать",i.onclick=()=>{s.value.length<4?r.textContent="Минимум 4 символа":s.value===a.value?(localStorage.setItem("osPassword",btoa(s.value)),t.style.display="none",document.body.style.overflow=""):r.textContent="Пароли не совпадают"}):"change"===e?(n.textContent="Сменить пароль",s.placeholder="Новый пароль",a.style.display="",a.placeholder="Повторите пароль",i.textContent="Сменить",i.onclick=()=>{s.value.length<4?r.textContent="Минимум 4 символа":s.value===a.value?(localStorage.setItem("osPassword",btoa(s.value)),t.style.display="none",document.body.style.overflow="",showNotification("Пароль изменён!")):r.textContent="Пароли не совпадают"}):(n.textContent="Введите пароль для входа в ЖестьOS",s.placeholder="Пароль",i.textContent="Войти",i.onclick=()=>{const e=localStorage.getItem("osPassword");e&&btoa(s.value)===e?(t.style.display="none",document.body.style.overflow=""):r.textContent="Неверный пароль"}),s.onkeydown=a.onkeydown=e=>{"Enter"===e.key&&i.onclick()}}function patchSettingsAppForPassword(e){let t=e.querySelector(".settings-section.password");if(!t){t=document.createElement("div"),t.className="settings-section password",t.innerHTML='<div class="settings-title">Пароль системы</div>';const o=Array.from(e.querySelectorAll(".settings-section")).find(e=>e.textContent.includes("Технические характеристики"));if(o&&o.parentNode)o.nextSibling?o.parentNode.insertBefore(t,o.nextSibling):o.parentNode.appendChild(t);else{const o=e.querySelector(".settings-app");o?(o.appendChild(t),console.warn("Техническая секция не найдена, кнопка смены пароля добавлена в конец настроек.")):(e.appendChild(t),console.error("settings-app не найден, кнопка смены пароля добавлена в конец окна."))}}let o=e.querySelector("#change-password-btn");o||(o=document.createElement("button"),o.id="change-password-btn",o.textContent="Сменить пароль",o.className="settings-btn-password",o.style.display="block",o.style.margin="18px 0 0 0",o.style.padding="10px 32px",o.style.borderRadius="8px",o.style.border="none",o.style.background="#e6eaff",o.style.color="#007aff",o.style.fontSize="16px",o.style.fontWeight="500",o.style.cursor="pointer",o.style.boxShadow="0 2px 8px #0001",o.onmouseenter=()=>o.style.background="#d0e0ff",o.onmouseleave=()=>o.style.background="#e6eaff",o.onclick=()=>showLockscreen("change"),t.appendChild(o))}function initSystemMonitorApp(e){const t=e.querySelectorAll(".system-monitor-tab"),o=e.querySelector(".system-monitor-content");e.querySelectorAll('.system-monitor-tab[data-tab="network"]').forEach(e=>e.remove());let n=null;function s(){const e=Object.keys(openWindows).map((e,t)=>({pid:1e3+t,name:getAppTitle(e),mem:(120*Math.random()+40).toFixed(1),status:"Работает"}));o.innerHTML=`\n      <div style='padding:18px 0 8px 0; text-align:center; color:#888;'>Список процессов (имитация, автообновление)</div>\n      <table style='margin:0 auto; min-width:320px; background:#fff; border-radius:8px; box-shadow:0 2px 8px #0001; border-collapse:collapse;'>\n        <thead><tr style='background:#f7f7fa;'><th style='padding:6px 16px;'>PID</th><th style='padding:6px 16px;'>Имя</th><th style='padding:6px 16px;'>Память</th><th style='padding:6px 16px;'>Статус</th></tr></thead>\n        <tbody>\n          ${e.map(e=>`<tr><td style='padding:6px 16px; text-align:center;'>${e.pid}</td><td style='padding:6px 16px;'>${e.name}</td><td style='padding:6px 16px; text-align:right;'>${e.mem} МБ</td><td style='padding:6px 16px; color:#27c93f;'>${e.status}</td></tr>`).join("")}\n        </tbody>\n      </table>\n    `}function a(e){if(t.forEach(t=>t.classList.toggle("active",t.dataset.tab===e)),n&&(clearInterval(n),n=null),"processes"===e)s(),n=setInterval(s,2e3);else if("cpu"===e)o.innerHTML="<div style='padding:32px 0; text-align:center;'><b>CPU Usage</b><br><span id='cpu-usage-value'>0%</span><div style='height:80px; margin:16px auto 0 auto; max-width:320px; background:#e6eaff; border-radius:8px;'><canvas id='cpu-usage-graph' width='320' height='80'></canvas></div></div>",startFakeCpuUsage(o.querySelector("#cpu-usage-value"),o.querySelector("#cpu-usage-graph"));else if("memory"===e){let e=navigator.deviceMemory?navigator.deviceMemory:4,t=Math.random()*(.7*e)+.2*e;o.innerHTML=`\n        <div style='padding:32px 0; text-align:center;'>\n          <b>Память устройства</b><br>\n          <div style='margin:18px auto 18px auto; max-width:320px; background:#e6eaff; border-radius:8px; padding:18px 0;'>\n            <div style='font-size:18px; margin-bottom:8px;'>${t.toFixed(2)} ГБ / ${e} ГБ</div>\n            <div style='height:18px; background:#fff; border-radius:9px; box-shadow:0 1px 4px #0001; overflow:hidden; margin:0 24px;'>\n              <div id='mem-bar' style='height:100%; width:${(t/e*100).toFixed(1)}%; background:#007aff; transition:width 0.7s;'></div>\n            </div>\n          </div>\n        </div>\n      `;const n=o.querySelector("#mem-bar");setInterval(()=>{t=Math.random()*(.7*e)+.2*e,n.style.width=(t/e*100).toFixed(1)+"%",n.parentElement.previousElementSibling.textContent=t.toFixed(2)+" ГБ / "+e+" ГБ"},1800)}else if("storage"===e){let e=0,t="";for(let o=0;o<localStorage.length;++o){const n=localStorage.key(o),s=localStorage.getItem(n)||"";e+=n.length+s.length,t+=`<tr><td style='padding:4px 12px; font-size:15px;'>${n}</td><td style='padding:4px 12px; font-size:15px;'>${s.length}</td></tr>`}const n=Math.round(e/1024);o.innerHTML=`\n        <div style='font-size:18px; font-weight:600; margin-bottom:12px;'>Использование localStorage</div>\n        <table style='width:100%; border-collapse:collapse; background:#f7f7fa; border-radius:12px; box-shadow:0 2px 8px #0001;'>\n          <thead><tr style='background:#ececec;'><th style='text-align:left; padding:6px 12px;'>Ключ</th><th style='text-align:left; padding:6px 12px;'>Размер значения (байт)</th></tr></thead>\n          <tbody>${t}</tbody>\n        </table>\n        <div style='margin-top:16px; font-size:16px; color:#007aff;'>Всего: <b>${n} КБ</b></div>\n      `}}e.querySelectorAll(".system-monitor-tab").forEach(e=>e.onclick=()=>a(e.dataset.tab)),a("processes"),e.addEventListener("remove",()=>{n&&clearInterval(n)})}function startFakeCpuUsage(e,t){let o=20+30*Math.random(),n=Array(32).fill(o);setInterval(function(){o+=8*(Math.random()-.5),o=Math.max(5,Math.min(o,98)),n.push(o),n.length>32&&n.shift(),e.textContent=o.toFixed(1)+"%";const s=t.getContext("2d");s.clearRect(0,0,320,80),s.beginPath(),s.moveTo(0,80-n[0]);for(let e=1;e<n.length;e++)s.lineTo(10*e,80-n[e]);s.strokeStyle="#007aff",s.lineWidth=2.5,s.stroke(),s.fillStyle="#e6eaff",s.lineTo(320,80),s.lineTo(0,80),s.closePath(),s.fill()},700)}function initBrowserApp(e){const t=e.querySelector(".browser-home");if(t){const b=t.querySelector(".browser-home-search"),f=t.querySelector(".browser-home-go"),y=t.querySelector(".browser-home-history");let h=JSON.parse(localStorage.getItem("browserHistory")||"null");Array.isArray(h)||(h=[]);const w=Array.from(new Set(h.slice().reverse())).slice(0,10);function o(t){e.querySelector(".browser-app").innerHTML=`\n        <div class="browser-toolbar" style="display:flex; align-items:center; gap:8px; padding:10px 16px; background:#ececec; border-bottom:1px solid #e0e0e0;">\n          <button class="browser-nav browser-back" title="Назад" style="width:28px; height:28px; border:none; background:#e6eaff; border-radius:6px; font-size:18px; color:#007aff; cursor:pointer;">⟨</button>\n          <button class="browser-nav browser-forward" title="Вперёд" style="width:28px; height:28px; border:none; background:#e6eaff; border-radius:6px; font-size:18px; color:#007aff; cursor:pointer;">⟩</button>\n          <button class="browser-nav browser-refresh" title="Обновить" style="width:28px; height:28px; border:none; background:#e6eaff; border-radius:6px; font-size:18px; color:#007aff; cursor:pointer;">⟳</button>\n          <button class="browser-nav browser-home-btn" title="Домой" style="width:28px; height:28px; border:none; background:#e6eaff; border-radius:6px; font-size:18px; color:#007aff; cursor:pointer;">⌂</button>\n          <input class="browser-url" type="text" style="flex:1; margin:0 8px; padding:6px 12px; border-radius:8px; border:1px solid #d0d0d0; font-size:15px;" placeholder="Введите адрес или поисковый запрос..." />\n          <button class="browser-go" title="Найти" style="width:32px; height:32px; border:none; background:#007aff; border-radius:8px; color:#fff; font-size:18px; cursor:pointer; margin-left:4px;">→</button>\n        </div>\n        <div class="browser-iframe-container" style="flex:1; background:#fff; border-radius:0 0 12px 12px; overflow:hidden;">\n          <iframe class="browser-iframe" src="${t}" style="width:100%; height:100%; border:none; background:#fff;"></iframe>\n        </div>\n      `,setTimeout(()=>{initBrowserApp(e)},0)}return y.innerHTML=w.length?w.map(e=>`<div class='browser-home-history-item' style='padding:8px 16px; cursor:pointer; border-radius:8px; transition:background 0.18s; color:#007aff; font-size:15px; margin-bottom:2px;' onmouseover="this.style.background='#e6eaff'" onmouseout="this.style.background=''">${e}</div>`).join(""):'<div style="color:#888; padding:8px 16px;">История пуста</div>',f.onclick=()=>{let e=b.value.trim();e&&(/^https?:\/\//.test(e)||(e="https://www.bing.com/search?q="+encodeURIComponent(e)),o(e))},b.addEventListener("keydown",e=>{"Enter"===e.key&&f.onclick()}),void y.querySelectorAll(".browser-home-history-item").forEach(e=>{e.onclick=()=>o(e.textContent)})}const n=e.querySelector(".browser-url"),s=e.querySelector(".browser-iframe"),a=e.querySelector(".browser-back"),i=e.querySelector(".browser-forward"),r=e.querySelector(".browser-refresh"),l=e.querySelector(".browser-go"),c=e.querySelector(".browser-home-btn");let d=JSON.parse(localStorage.getItem("browserHistory")||"null");Array.isArray(d)&&d.length||(d=["https://www.bing.com"]);let p=d.length-1;function u(){localStorage.setItem("browserHistory",JSON.stringify(d))}function m(){a.disabled=p<=0,i.disabled=p>=d.length-1,n.value=d[p]||""}function g(e,t=!0){/^https?:\/\//.test(e)||(e="https://www.bing.com/search?q="+encodeURIComponent(e)),s.src=e,t&&(d=d.slice(0,p+1),d.push(e),p=d.length-1,u()),m()}n.addEventListener("keydown",e=>{"Enter"===e.key&&g(n.value)}),l.onclick=()=>{g(n.value)},a.onclick=()=>{p>0&&(p--,s.src=d[p],m(),u())},i.onclick=()=>{p<d.length-1&&(p++,s.src=d[p],m(),u())},r.onclick=()=>{s.src=d[p]},c&&(c.onclick=()=>{e.querySelector(".browser-app").innerHTML='\n        <div class="browser-home" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">\n          <div style="font-size:32px; font-weight:600; margin-bottom:24px; color:#007aff;">Браузер</div>\n          <input class="browser-home-search" type="text" style="width:340px; max-width:90vw; padding:16px 24px; font-size:20px; border-radius:16px; border:1.5px solid #d0d0d0; margin-bottom:24px; outline:none;" placeholder="Введите адрес или поисковый запрос..." autofocus />\n          <button class="browser-home-go" style="padding:10px 36px; font-size:18px; border-radius:10px; border:none; background:#007aff; color:#fff; cursor:pointer; margin-bottom:32px;">Найти</button>\n          <div style="font-size:18px; font-weight:500; margin-bottom:8px; color:#444;">Недавние сайты</div>\n          <div class="browser-home-history" style="width:340px; max-width:90vw; background:#fff; border-radius:12px; box-shadow:0 2px 8px #0001; padding:12px 0; min-height:40px; max-height:220px; overflow-y:auto;"></div>\n        </div>\n      ',setTimeout(()=>{initBrowserApp(e)},0)}),s.addEventListener("load",()=>{try{const e=s.contentWindow.location.href;e&&"about:blank"!==e&&(n.value=e)}catch(e){}}),m()}function initBrowserTabs(e){let t=JSON.parse(localStorage.getItem("browserTabs")||"null");Array.isArray(t)&&t.length||(t=[{id:"tab"+Date.now(),title:"Новая вкладка",url:"",history:[],historyIndex:-1,isHome:!0}]);let o=localStorage.getItem("browserActiveTabId");o&&t.some(e=>e.id===o)||(o=t[0].id);const n=e.querySelector(".browser-tabs-bar"),s=e.querySelector(".browser-tabs-content");function a(){localStorage.setItem("browserTabs",JSON.stringify(t)),localStorage.setItem("browserActiveTabId",o)}function i(e){o=e,a(),l(),c()}function r(e="",o=!0){const n={id:"tab"+Date.now()+Math.floor(1e4*Math.random()),title:"Новая вкладка",url:e,history:e?[e]:[],historyIndex:e?0:-1,isHome:o||!e};t.push(n),i(n.id),a()}function l(){n.innerHTML="",t.forEach(e=>{const s=document.createElement("div");s.className="browser-tab"+(e.id===o?" active":""),s.style.cssText=`display:flex; align-items:center; gap:6px; padding:7px 18px 7px 14px; border-radius:10px 10px 0 0; background:${e.id===o?"#fff":"transparent"}; font-size:15px; font-weight:500; cursor:pointer; position:relative; margin-right:2px; border:1px solid #e0e0e0; border-bottom:none;`,s.innerHTML=`<span class="browser-tab-title" style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${e.title||"Новая вкладка"}</span>`;const d=document.createElement("span");d.textContent="×",d.title="Закрыть вкладку",d.style.cssText="margin-left:8px; color:#888; font-size:18px; cursor:pointer;",d.onclick=n=>{n.stopPropagation(),function(e){const n=t.findIndex(t=>t.id===e);if(-1!==n)if(t.splice(n,1),t.length){if(o===e){const e=Math.max(0,n-1);i(t[e].id)}else l(),c();a()}else r()}(e.id)},s.appendChild(d),s.onclick=()=>i(e.id),n.appendChild(s)});const e=document.createElement("button");e.textContent="+",e.title="Новая вкладка",e.style.cssText="margin-left:6px; width:28px; height:28px; border:none; background:#e6eaff; border-radius:8px; color:#007aff; font-size:20px; font-weight:600; cursor:pointer;",e.onclick=()=>r(),n.appendChild(e)}function c(){s.innerHTML="";const e=t.find(e=>e.id===o);if(!e)return;if(e.isHome){const w=document.createElement("div");w.className="browser-home",w.style.cssText="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; position:absolute; left:0; right:0; top:0; bottom:0;",w.innerHTML='\n        <div style="font-size:32px; font-weight:600; margin-bottom:24px; color:#007aff;">Браузер</div>\n        <input class="browser-home-search" type="text" style="width:340px; max-width:90vw; padding:16px 24px; font-size:20px; border-radius:16px; border:1.5px solid #d0d0d0; margin-bottom:24px; outline:none;" placeholder="Введите адрес или поисковый запрос..." autofocus />\n        <button class="browser-home-go" style="padding:10px 36px; font-size:18px; border-radius:10px; border:none; background:#007aff; color:#fff; cursor:pointer; margin-bottom:32px;">Найти</button>\n        <div style="font-size:18px; font-weight:500; margin-bottom:8px; color:#444;">Недавние сайты</div>\n        <div class="browser-home-history" style="width:340px; max-width:90vw; background:#fff; border-radius:12px; box-shadow:0 2px 8px #0001; padding:12px 0; min-height:40px; max-height:220px; overflow-y:auto;"></div>\n      ',s.appendChild(w);let v=JSON.parse(localStorage.getItem("browserHistory")||"null");Array.isArray(v)||(v=[]);const x=Array.from(new Set(v.slice().reverse())).slice(0,10),S=w.querySelector(".browser-home-history");function n(t){e.isHome=!1,e.url=t,e.history=[t],e.historyIndex=0,e.title=t.replace(/^https?:\/\//,"").split("/")[0],a(),i(e.id)}return S.innerHTML=x.length?x.map(e=>`<div class='browser-home-history-item' style='padding:8px 16px; cursor:pointer; border-radius:8px; transition:background 0.18s; color:#007aff; font-size:15px; margin-bottom:2px;' onmouseover="this.style.background='#e6eaff'" onmouseout="this.style.background=''">${e}</div>`).join(""):'<div style="color:#888; padding:8px 16px;">История пуста</div>',w.querySelector(".browser-home-go").onclick=()=>{let e=w.querySelector(".browser-home-search").value.trim();e&&(/^https?:\/\//.test(e)||(e="https://www.bing.com/search?q="+encodeURIComponent(e)),n(e))},w.querySelector(".browser-home-search").addEventListener("keydown",e=>{"Enter"===e.key&&w.querySelector(".browser-home-go").onclick()}),void S.querySelectorAll(".browser-home-history-item").forEach(e=>{e.onclick=()=>n(e.textContent)})}const r=document.createElement("div");r.className="browser-tab-content",r.style.cssText="display:flex; flex-direction:column; height:100%; width:100%; position:absolute; left:0; right:0; top:0; bottom:0; background:#fff; border-radius:0 0 12px 12px;",r.innerHTML=`\n      <div class="browser-toolbar" style="display:flex; align-items:center; gap:8px; padding:10px 16px; background:#ececec; border-bottom:1px solid #e0e0e0;">\n        <button class="browser-nav browser-back" title="Назад" style="width:28px; height:28px; border:none; background:#e6eaff; border-radius:6px; font-size:18px; color:#007aff; cursor:pointer;">⟨</button>\n        <button class="browser-nav browser-forward" title="Вперёд" style="width:28px; height:28px; border:none; background:#e6eaff; border-radius:6px; font-size:18px; color:#007aff; cursor:pointer;">⟩</button>\n        <button class="browser-nav browser-refresh" title="Обновить" style="width:28px; height:28px; border:none; background:#e6eaff; border-radius:6px; font-size:18px; color:#007aff; cursor:pointer;">⟳</button>\n        <button class="browser-nav browser-home-btn" title="Домой" style="width:28px; height:28px; border:none; background:#e6eaff; border-radius:6px; font-size:18px; color:#007aff; cursor:pointer;">⌂</button>\n        <input class="browser-url" type="text" style="flex:1; margin:0 8px; padding:6px 12px; border-radius:8px; border:1px solid #d0d0d0; font-size:15px;" placeholder="Введите адрес или поисковый запрос..." />\n        <button class="browser-go" title="Найти" style="width:32px; height:32px; border:none; background:#007aff; border-radius:8px; color:#fff; font-size:18px; cursor:pointer; margin-left:4px;">→</button>\n      </div>\n      <div class="browser-iframe-container" style="flex:1; background:#fff; border-radius:0 0 12px 12px; overflow:hidden;">\n        <iframe class="browser-iframe" src="${e.url}" style="width:100%; height:100%; border:none; background:#fff;"></iframe>\n      </div>\n    `,s.appendChild(r);const c=r.querySelector(".browser-url"),d=r.querySelector(".browser-iframe"),p=r.querySelector(".browser-back"),u=r.querySelector(".browser-forward"),m=r.querySelector(".browser-refresh"),g=r.querySelector(".browser-go"),b=r.querySelector(".browser-home-btn");function f(){a();let t=JSON.parse(localStorage.getItem("browserHistory")||"[]");t.includes(e.url)||(t.push(e.url),localStorage.setItem("browserHistory",JSON.stringify(t)))}function y(){p.disabled=e.historyIndex<=0,u.disabled=e.historyIndex>=e.history.length-1,c.value=e.history[e.historyIndex]||"",e.title=(e.history[e.historyIndex]||"Новая вкладка").replace(/^https?:\/\//,"").split("/")[0],l()}function h(t,o=!0){/^https?:\/\//.test(t)||(t="https://www.bing.com/search?q="+encodeURIComponent(t)),d.src=t,o&&(e.history=e.history.slice(0,e.historyIndex+1),e.history.push(t),e.historyIndex=e.history.length-1,e.url=t,f()),y()}c.addEventListener("keydown",e=>{"Enter"===e.key&&h(c.value)}),g.onclick=()=>{h(c.value)},p.onclick=()=>{e.historyIndex>0&&(e.historyIndex--,e.url=e.history[e.historyIndex],d.src=e.url,y(),f())},u.onclick=()=>{e.historyIndex<e.history.length-1&&(e.historyIndex++,e.url=e.history[e.historyIndex],d.src=e.url,y(),f())},m.onclick=()=>{d.src=e.url},b&&(b.onclick=()=>{e.isHome=!0,a(),i(e.id)}),d.addEventListener("load",()=>{try{const t=d.contentWindow.location.href;t&&"about:blank"!==t&&(c.value=t,e.title=t.replace(/^https?:\/\//,"").split("/")[0],l())}catch(e){}}),y()}l(),c()}function updateDesktopAppIcons(){const e=document.getElementById("desktop"),t=JSON.parse(localStorage.getItem("storeInstalledApps")||"[]"),o=localStorage.getItem("desktopAppPositions"),n=o?JSON.parse(o):{};e.querySelectorAll(".app-icon").forEach(e=>{const o=e.dataset.app;"notes"!==o&&"browser"!==o&&"settings"!==o&&"smile-chat"!==o&&"store"!==o&&"system-monitor"!==o&&(t.some(e=>e.id===o)||e.remove())}),t.forEach(t=>{if(!e.querySelector(`.app-icon[data-app="${t.id}"]`)){const o=document.createElement("div");o.className="app-icon",o.dataset.app=t.id,o.style.position="absolute",o.style.left=n[t.id]?.left||"0px",o.style.top=n[t.id]?.top||"0px",o.innerHTML=`\n        <img src="${t.icon||"https://img.icons8.com/ios-filled/50/000000/application-window.png"}" alt="${t.name||t.id}">\n        <span>${t.name||t.id}</span>\n      `,e.appendChild(o),o.addEventListener("dblclick",()=>openAppWindow(t.id))}}),makeAppIconsDraggable()}if(menubarApple.addEventListener("click",e=>{openMenubarDropdown("apple",menubarApple)}),menubarMenus.forEach(e=>{e.addEventListener("click",t=>{openMenubarDropdown(e.dataset.menu,e),t.stopPropagation()})}),window.addEventListener("click",e=>{e.target.closest(".menubar-dropdown")||e.target.classList.contains("menubar-menu")||e.target.classList.contains("menubar-apple")||closeMenubarDropdown()}),window.addEventListener("keydown",e=>{"Escape"===e.key&&closeMenubarDropdown()}),window.addEventListener("DOMContentLoaded",()=>{showLockscreen(localStorage.getItem("osPassword")?"login":"create")}),window.addEventListener("DOMContentLoaded",()=>{const e=document.getElementById("desktop");if(!e.querySelector('.app-icon[data-app="system-monitor"]')){const t=document.createElement("div");t.className="app-icon",t.dataset.app="system-monitor";let o="0px",n="384px";const s=localStorage.getItem("desktopAppPositions");if(s){const e=JSON.parse(s);e["system-monitor"]&&(o=e["system-monitor"].left,n=e["system-monitor"].top)}t.style.position="absolute",t.style.left=o,t.style.top=n,t.innerHTML='\n      <img src="https://img.icons8.com/ios-filled/50/000000/activity-history.png" alt="Мониторинг">\n      <span>Мониторинг</span>\n    ',e.appendChild(t),t.addEventListener("dblclick",()=>{openAppWindow("system-monitor")}),makeAppIconsDraggable()}const t=JSON.parse(localStorage.getItem("storeInstalledApps")||"[]"),o=localStorage.getItem("desktopAppPositions"),n=o?JSON.parse(o):{};t.forEach(t=>{if(!e.querySelector(`.app-icon[data-app="${t.id}"]`)){const o=document.createElement("div");o.className="app-icon",o.dataset.app=t.id,o.style.position="absolute",o.style.left=n[t.id]?.left||"0px",o.style.top=n[t.id]?.top||"0px",o.innerHTML=`\n        <img src="${t.icon||"https://img.icons8.com/ios-filled/50/000000/application-window.png"}" alt="${t.name||t.id}">\n        <span>${t.name||t.id}</span>\n      `,e.appendChild(o),o.addEventListener("dblclick",()=>openAppWindow(t.id))}}),makeAppIconsDraggable()}),dockPinned.includes("system-monitor")||(dockPinned.push("system-monitor"),localStorage.setItem("dockApps",JSON.stringify(dockPinned))),"system-monitor"===app?(imgSrc="https://img.icons8.com/ios-filled/50/000000/activity-history.png",alt="Мониторинг"):"system-monitor"===app&&(content='\n      <div class="system-monitor-app">\n        <div class="system-monitor-tabs">\n          <button class="system-monitor-tab active" data-tab="processes">Процессы</button>\n          <button class="system-monitor-tab" data-tab="cpu">CPU</button>\n          <button class="system-monitor-tab" data-tab="memory">Память</button>\n          <button class="system-monitor-tab" data-tab="storage">Хранилище</button>\n        </div>\n        <div class="system-monitor-content">\n          \x3c!-- Содержимое вкладки будет подгружаться --\x3e\n        </div>\n      </div>\n    '),"system-monitor"===app&&setTimeout(()=>{initSystemMonitorApp(windowEl)},0),document.querySelector(".word-container")){window.format=function(e){document.execCommand(e,!1,null)};const e=document.getElementById("editor"),t=document.getElementById("saveDoc"),o=document.getElementById("downloadDoc"),n=document.getElementById("savedDocs"),s=document.getElementById("loadDoc"),a=document.getElementById("deleteDoc"),i=document.getElementById("docTitle");function getSavedDocs(){return JSON.parse(localStorage.getItem("wordDocs")||"{}")}function setSavedDocs(e){localStorage.setItem("wordDocs",JSON.stringify(e))}function refreshSavedDocs(){const e=getSavedDocs();n.innerHTML="",Object.keys(e).forEach(e=>{const t=document.createElement("option");t.value=e,t.textContent=e,n.appendChild(t)})}t.onclick=function(){const t=i.value.trim();if(!t)return alert("Введите название документа!");const o=getSavedDocs();o[t]=e.innerHTML,setSavedDocs(o),refreshSavedDocs(),alert("Документ сохранён!")},s.onclick=function(){const t=n.value;if(!t)return;const o=getSavedDocs();i.value=t,e.innerHTML=o[t]||""},a.onclick=function(){const e=n.value;if(!e)return;const t=getSavedDocs();delete t[e],setSavedDocs(t),refreshSavedDocs(),alert("Документ удалён!")},o.onclick=async function(){const t=i.value.trim()||"Документ",o=(e.innerHTML,new window.docx.Document({sections:[{properties:{},children:[new window.docx.Paragraph({children:[new window.docx.TextRun({text:e.innerText})]})]}]})),n=await window.docx.Packer.toBlob(o),s=document.createElement("a");s.href=URL.createObjectURL(n),s.download=t+".docx",s.click(),URL.revokeObjectURL(s.href)},refreshSavedDocs()}
+  document.addEventListener("DOMContentLoaded", () => {
+    const apps = [
+      { id: 'notes', title: 'Заметки' },
+      { id: 'browser', title: 'Браузер' },
+      { id: 'settings', title: 'Настройки' },
+      { id: 'smile-chat', title: 'ЖестьМесседж' }
     ];
-    // Таймеры (setInterval/setTimeout)
-    if (!window._monitorTimers) window._monitorTimers = {count: 0};
-    processes.push({
-      pid: 1001,
-      type: 'Timer',
-      name: 'Таймеры JS',
-      status: 'Работает',
-      info: `Активных: ${window._monitorTimers.count}`,
-      mem: '—'
+  
+    const launcher = document.getElementById("window-launcher");
+  
+    apps.forEach(app => {
+      const preview = document.createElement("div");
+      preview.className = "launcher-window-preview";
+      preview.textContent = app.title;
+      preview.dataset.app = app.id;
+      launcher.appendChild(preview);
+  
+      preview.addEventListener("click", () => openAppWindow(app));
     });
-    // Сетевые запросы (ресурсы)
-    const resources = performance.getEntriesByType('resource') || [];
-    processes.push({
-      pid: 1002,
-      type: 'Network',
-      name: 'Сетевые запросы',
-      status: 'Работает',
-      info: `За сессию: ${resources.length}`,
-      mem: '—'
-    });
-    // FPS (кадр/сек)
-    if (!window._monitorFps) window._monitorFps = {fps: 0};
-    processes.push({
-      pid: 1003,
-      type: 'FPS',
-      name: 'FPS (отрисовка)',
-      status: 'Работает',
-      info: `FPS: ${window._monitorFps.fps}`,
-      mem: '—'
-    });
-    // Web Workers (если есть)
-    if (window._monitorWorkers && window._monitorWorkers.length) {
-      window._monitorWorkers.forEach((w, i) => {
-        processes.push({
-          pid: 1100 + i,
-          type: 'Worker',
-          name: w.name || 'Worker',
-          status: w.active ? 'Работает' : 'Остановлен',
-          info: '',
-          mem: '—'
-        });
+  
+    function openAppWindow({ id, title }) {
+      const windowEl = document.createElement("div");
+      windowEl.className = "window";
+      windowEl.style.top = "100px";
+      windowEl.style.left = "100px";
+  
+      const header = document.createElement("div");
+      header.className = "window-header";
+  
+      const controls = document.createElement("div");
+      controls.className = "window-controls";
+  
+      const closeBtn = document.createElement("div");
+      closeBtn.className = "window-dot window-close-dot";
+      closeBtn.addEventListener("click", () => windowEl.remove());
+      controls.appendChild(closeBtn);
+  
+      header.appendChild(controls);
+  
+      const titleEl = document.createElement("div");
+      titleEl.className = "window-title";
+      titleEl.textContent = title;
+      header.appendChild(titleEl);
+  
+      windowEl.appendChild(header);
+  
+      const content = document.createElement("div");
+      content.className = "window-content";
+      content.innerHTML = `<p>Окно ${title}</p>`;
+      windowEl.appendChild(content);
+  
+      document.body.appendChild(windowEl);
+  
+      makeDraggable(windowEl, header);
+  
+      gsap.fromTo(windowEl, {
+        scale: 0.5,
+        opacity: 0,
+        y: 100
+      }, {
+        scale: 1,
+        opacity: 1,
+        y: 0,
+        duration: 0.4,
+        ease: "power3.out"
       });
     }
-    // Открытые окна (как раньше)
-    Object.keys(openWindows).forEach((key, idx) => {
-      const win = openWindows[key];
-      if (document.body.contains(win)) {
-        processes.push({
-          pid: 1200 + idx,
-          type: 'App',
-          name: getAppTitle(key),
-          status: 'Открыто',
-          info: '',
-          mem: '—'
-        });
-      }
-    });
-    // FPS монитор
-    if (!window._monitorFpsInterval) {
-      let last = performance.now(), frames = 0;
-      function fpsTick() {
-        frames++;
-        const now = performance.now();
-        if (now - last > 1000) {
-          window._monitorFps.fps = frames;
-          frames = 0;
-          last = now;
-        }
-        window.requestAnimationFrame(fpsTick);
-      }
-      window.requestAnimationFrame(fpsTick);
-      window._monitorFpsInterval = true;
-    }
-    // Таймер монитор
-    if (!window._monitorTimerPatched) {
-      const origSetTimeout = window.setTimeout;
-      const origSetInterval = window.setInterval;
-      const origClearTimeout = window.clearTimeout;
-      const origClearInterval = window.clearInterval;
-      let activeTimers = 0;
-      window.setTimeout = function(...args) {
-        activeTimers++;
-        window._monitorTimers.count = activeTimers;
-        const id = origSetTimeout(() => {
-          activeTimers--;
-          window._monitorTimers.count = activeTimers;
-          args[0] && args[0]();
-        }, args[1]);
-        return id;
-      };
-      window.setInterval = function(...args) {
-        activeTimers++;
-        window._monitorTimers.count = activeTimers;
-        const id = origSetInterval(args[0], args[1]);
-        return id;
-      };
-      window.clearTimeout = function(id) {
-        activeTimers--;
-        window._monitorTimers.count = Math.max(0, activeTimers);
-        origClearTimeout(id);
-      };
-      window.clearInterval = function(id) {
-        activeTimers--;
-        window._monitorTimers.count = Math.max(0, activeTimers);
-        origClearInterval(id);
-      };
-      window._monitorTimerPatched = true;
-    }
-    o.innerHTML = `
-      <div style='padding:18px 0 8px 0; text-align:center; color:#888;'>Системные процессы браузера (реальные данные, автообновление)</div>
-      <table style='margin:0 auto; min-width:420px; background:#fff; border-radius:8px; box-shadow:0 2px 8px #0001; border-collapse:collapse;'>
-        <thead><tr style='background:#f7f7fa;'><th style='padding:6px 16px;'>PID</th><th style='padding:6px 16px;'>Тип</th><th style='padding:6px 16px;'>Имя</th><th style='padding:6px 16px;'>Статус</th><th style='padding:6px 16px;'>Инфо</th><th style='padding:6px 16px;'>Память</th></tr></thead>
-        <tbody>
-          ${processes.map(e=>`<tr><td style='padding:6px 16px; text-align:center;'>${e.pid}</td><td style='padding:6px 16px;'>${e.type}</td><td style='padding:6px 16px;'>${e.name}</td><td style='padding:6px 16px; color:#27c93f;'>${e.status}</td><td style='padding:6px 16px;'>${e.info}</td><td style='padding:6px 16px;'>${e.mem}</td></tr>`).join("")}
-        </tbody>
-      </table>
-    `;
-  }
-  function realCpuTab() {
-    o.innerHTML = `<div style='padding:32px 0; text-align:center;'>
-      <b>Загрузка CPU (JS поток)</b><br>
-      <span id='cpu-usage-value'>0%</span>
-      <div style='height:80px; margin:16px auto 0 auto; max-width:320px; background:#e6eaff; border-radius:8px;'>
-        <canvas id='cpu-usage-graph' width='320' height='80'></canvas>
-      </div>
-      <div style='font-size:13px; color:#888; margin-top:8px;'>* Только JS поток, не вся система</div>
-    </div>`;
-    startRealCpuUsage(o.querySelector('#cpu-usage-value'), o.querySelector('#cpu-usage-graph'));
-  }
-  function realMemoryTab() {
-    let deviceMem = navigator.deviceMemory ? navigator.deviceMemory : 4;
-    let hasPerfMem = !!(performance.memory && performance.memory.usedJSHeapSize);
-    let used = hasPerfMem ? performance.memory.usedJSHeapSize / 1024 / 1024 : null;
-    let limit = hasPerfMem ? performance.memory.jsHeapSizeLimit / 1024 / 1024 : null;
-    let free = hasPerfMem ? (limit - used) : null;
-    let domCount = document.getElementsByTagName('*').length;
-    let openWinCount = Object.keys(openWindows).length;
-    o.innerHTML = `
-      <div style='padding:32px 0 0 0; text-align:center;'>
-        <b>Память устройства</b><br>
-        <span id='mem-usage-value'>-</span>
-        <div style='height:80px; margin:16px auto 0 auto; max-width:320px; background:#e6eaff; border-radius:8px;'>
-          <canvas id='mem-usage-graph' width='320' height='80'></canvas>
-        </div>
-        <div style='margin:18px auto 0 auto; max-width:420px;'>
-          <table style='width:100%; background:#fff; border-radius:10px; box-shadow:0 2px 8px #0001; border-collapse:collapse; font-size:15px;'>
-            <tr><td style='padding:6px 16px;'>RAM устройства</td><td style='padding:6px 16px;'>${navigator.deviceMemory ? navigator.deviceMemory + ' ГБ' : 'N/A'}</td></tr>
-            <tr><td style='padding:6px 16px;'>JS Heap Used</td><td style='padding:6px 16px;'>${hasPerfMem ? used.toFixed(2) + ' МБ' : 'N/A'}</td></tr>
-            <tr><td style='padding:6px 16px;'>JS Heap Limit</td><td style='padding:6px 16px;'>${hasPerfMem ? limit.toFixed(2) + ' МБ' : 'N/A'}</td></tr>
-            <tr><td style='padding:6px 16px;'>Свободно (JS Heap)</td><td style='padding:6px 16px;'>${hasPerfMem ? free.toFixed(2) + ' МБ' : 'N/A'}</td></tr>
-            <tr><td style='padding:6px 16px;'>DOM-элементов</td><td style='padding:6px 16px;'>${domCount}</td></tr>
-            <tr><td style='padding:6px 16px;'>Открытых окон</td><td style='padding:6px 16px;'>${openWinCount}</td></tr>
-          </table>
-        </div>
-        <div style='font-size:13px; color:#888; margin-top:12px;'>
-          * Показаны реальные данные браузера.<br>
-          ${hasPerfMem ? '' : 'performance.memory поддерживается только в некоторых браузерах (например, Chrome).'}
-        </div>
-      </div>
-    `;
-    startRealMemoryUsage(o.querySelector('#mem-usage-value'), o.querySelector('#mem-usage-graph'), deviceMem);
-  }
-  function systemInfoTab() {
-    let uptime = ((performance.now() / 1000) / 60).toFixed(1);
-    let ua = navigator.userAgent;
-    let lang = navigator.language;
-    let mem = navigator.deviceMemory ? navigator.deviceMemory + ' ГБ' : 'N/A';
-    let cores = navigator.hardwareConcurrency || 'N/A';
-    let online = navigator.onLine ? 'Онлайн' : 'Оффлайн';
-    let batteryHtml = '<span id="battery-info">Загрузка...</span>';
-    o.innerHTML = `
-      <div style='padding:24px 0; text-align:center;'>
-        <b>Информация о системе</b>
-        <table style='margin:18px auto 0 auto; min-width:320px; background:#fff; border-radius:8px; box-shadow:0 2px 8px #0001; border-collapse:collapse; font-size:15px;'>
-          <tr><td style='padding:6px 16px;'>User Agent</td><td style='padding:6px 16px;'>${ua}</td></tr>
-          <tr><td style='padding:6px 16px;'>Язык</td><td style='padding:6px 16px;'>${lang}</td></tr>
-          <tr><td style='padding:6px 16px;'>Память</td><td style='padding:6px 16px;'>${mem}</td></tr>
-          <tr><td style='padding:6px 16px;'>CPU ядер</td><td style='padding:6px 16px;'>${cores}</td></tr>
-          <tr><td style='padding:6px 16px;'>Аптайм страницы</td><td style='padding:6px 16px;'>${uptime} мин</td></tr>
-          <tr><td style='padding:6px 16px;'>Сеть</td><td style='padding:6px 16px;'>${online}</td></tr>
-          <tr><td style='padding:6px 16px;'>Батарея</td><td style='padding:6px 16px;'>${batteryHtml}</td></tr>
-        </table>
-      </div>
-    `;
-    // Батарея
-    if (navigator.getBattery) {
-      navigator.getBattery().then(bat => {
-        let b = `${(bat.level*100).toFixed(0)}% ${bat.charging ? '⚡️' : ''}`;
-        o.querySelector('#battery-info').textContent = b;
+  
+    function makeDraggable(element, handle) {
+      let isDragging = false;
+      let offsetX = 0, offsetY = 0;
+  
+      handle.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        offsetX = e.clientX - element.offsetLeft;
+        offsetY = e.clientY - element.offsetTop;
+        element.style.zIndex = 1000;
+  
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", onMouseUp);
       });
-    } else {
-      o.querySelector('#battery-info').textContent = 'N/A';
+  
+      function onMouseMove(e) {
+        if (!isDragging) return;
+        element.style.left = `${e.clientX - offsetX}px`;
+        element.style.top = `${e.clientY - offsetY}px`;
+      }
+  
+      function onMouseUp() {
+        isDragging = false;
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      }
     }
-  }
-  function a(e){
-    t.forEach(t=>t.classList.toggle("active",t.dataset.tab===e)),n&&(clearInterval(n),n=null);
-    if("processes"===e) { s(); n=setInterval(s,2e3); }
-    else if("cpu"===e) realCpuTab();
-    else if("memory"===e) realMemoryTab();
-    else if("storage"===e) {
-      let e=0,t="";
-      for(let o=0;o<localStorage.length;++o){
-        const n=localStorage.key(o),s=localStorage.getItem(n)||"";
-        e+=n.length+s.length,t+=`<tr><td style='padding:4px 12px; font-size:15px;'>${n}</td><td style='padding:4px 12px; font-size:15px;'>${s.length}</td></tr>`}
-      const n=Math.round(e/1024);
-      o.innerHTML=`
-        <div style='font-size:18px; font-weight:600; margin-bottom:12px;'>Использование localStorage</div>
-        <table style='width:100%; border-collapse:collapse; background:#f7f7fa; border-radius:12px; box-shadow:0 2px 8px #0001;'>
-          <thead><tr style='background:#ececec;'><th style='text-align:left; padding:6px 12px;'>Ключ</th><th style='text-align:left; padding:6px 12px;'>Размер значения (байт)</th></tr></thead>
-          <tbody>${t}</tbody>
-        </table>
-        <div style='margin-top:16px; font-size:16px; color:#007aff;'>Всего: <b>${n} КБ</b></div>
-      `
-    }
-    else if("system"===e) systemInfoTab();
-  }
-  e.querySelectorAll(".system-monitor-tab").forEach(e=>e.onclick=()=>a(e.dataset.tab));
-  a("processes");
-  e.addEventListener("remove",()=>{n&&clearInterval(n)})
+  });
+  const stageManager = document.getElementById('stage-manager');
+let stageWindows = [];
+
+function moveToStageManager(windowEl) {
+  const thumb = document.createElement('div');
+  thumb.className = 'stage-thumbnail';
+  thumb.dataset.app = windowEl.dataset.app;
+
+  // Клонируем внешний вид окна как картинку (или упрощенный вид)
+  thumb.innerHTML = '<div style="width:100%;height:100%;background:#eee;"></div>';
+  stageManager.appendChild(thumb);
+
+  // Анимация скрытия окна
+  gsap.to(windowEl, {
+    duration: 0.4,
+    scale: 0.8,
+    opacity: 0,
+    x: 100,
+    onComplete: () => windowEl.style.display = 'none'
+  });
+
+  thumb.addEventListener('click', () => restoreWindow(windowEl, thumb));
 }
-// Реальный мониторинг загрузки CPU (JS thread)
-function startRealCpuUsage(valEl, graphEl) {
-  let last = performance.now(), busy = 0, total = 0, usage = 0;
-  let arr = Array(32).fill(0);
-  function tick() {
-    let t0 = performance.now();
-    // Busy loop на 10мс, чтобы замерить busy time (имитация нагрузки)
-    let busyStart = performance.now();
-    while(performance.now() - busyStart < 10){};
-    let t1 = performance.now();
-    let frame = t1 - t0;
-    busy = frame;
-    total = 16.7; // ~60fps
-    usage = Math.min(100, Math.max(0, (busy/total)*100));
-    arr.push(usage); if(arr.length>32) arr.shift();
-    valEl.textContent = usage.toFixed(1) + '%';
-    // draw
-    const ctx = graphEl.getContext('2d');
-    ctx.clearRect(0,0,320,80);
-    ctx.beginPath();
-    ctx.moveTo(0,80-arr[0]);
-    for(let i=1;i<arr.length;i++) ctx.lineTo(10*i,80-arr[i]);
-    ctx.strokeStyle="#007aff";
-    ctx.lineWidth=2.5;
-    ctx.stroke();
-    ctx.fillStyle="#e6eaff";
-    ctx.lineTo(320,80);
-    ctx.lineTo(0,80);
-    ctx.closePath();
-    ctx.fill();
-    setTimeout(tick, 700);
-  }
-  tick();
+
+function restoreWindow(windowEl, thumb) {
+  windowEl.style.display = 'flex';
+  windowEl.style.opacity = 0;
+  windowEl.style.transform = 'scale(0.8)';
+  gsap.to(windowEl, {
+    duration: 0.4,
+    scale: 1,
+    opacity: 1,
+    x: 0
+  });
+  thumb.remove();
 }
-// Реальный мониторинг памяти (если возможно)
-function startRealMemoryUsage(valEl, graphEl, deviceMem) {
-  let arr = Array(32).fill(0);
-  function getMem() {
-    let used = 0, total = deviceMem;
-    if (performance.memory) {
-      used = performance.memory.usedJSHeapSize / 1024 / 1024 / 1024;
-      total = performance.memory.jsHeapSizeLimit / 1024 / 1024 / 1024;
-    } else {
-      used = Math.random()*(.7*total)+.2*total;
-    }
-    return {used, total};
-  }
-  function tick() {
-    let {used, total} = getMem();
-    arr.push(used); if(arr.length>32) arr.shift();
-    valEl.textContent = used.toFixed(2) + ' ГБ / ' + total.toFixed(2) + ' ГБ';
-    // draw
-    const ctx = graphEl.getContext('2d');
-    ctx.clearRect(0,0,320,80);
-    ctx.beginPath();
-    ctx.moveTo(0,80-80*arr[0]/total);
-    for(let i=1;i<arr.length;i++) ctx.lineTo(10*i,80-80*arr[i]/total);
-    ctx.strokeStyle="#007aff";
-    ctx.lineWidth=2.5;
-    ctx.stroke();
-    ctx.fillStyle="#e6eaff";
-    ctx.lineTo(320,80);
-    ctx.lineTo(0,80);
-    ctx.closePath();
-    ctx.fill();
-    setTimeout(tick, 1800);
-  }
-  tick();
+
+function overrideCloseButtons() {
+  const closeButtons = document.querySelectorAll('.window-close');
+  closeButtons.forEach(btn => {
+    btn.onclick = (e) => {
+      const win = btn.closest('.window');
+      if (win) moveToStageManager(win);
+    };
+  });
 }
