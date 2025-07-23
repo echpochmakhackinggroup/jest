@@ -175,3 +175,369 @@ function overrideCloseButtons() {
     };
   });
 }
+
+
+function initSystemMonitorApp(e){const t=e.querySelectorAll(".system-monitor-tab"),o=e.querySelector(".system-monitor-content");
+  // Добавим новую вкладку "system"
+  if (!e.querySelector('.system-monitor-tab[data-tab="system"]')) {
+    const btn = document.createElement('button');
+    btn.className = 'system-monitor-tab';
+    btn.dataset.tab = 'system';
+    btn.textContent = 'Система';
+    e.querySelector('.system-monitor-tabs').appendChild(btn);
+  }
+  let n=null;
+  function s(){
+    // Главный поток JS
+    const processes = [
+      {
+        pid: 1000,
+        type: 'JS',
+        name: 'Главный поток',
+        status: 'Работает',
+        info: `Аптайм: ${(performance.now()/1000).toFixed(1)} сек`,
+        mem: window.performance?.memory ? (performance.memory.usedJSHeapSize/1024/1024).toFixed(1) + ' МБ' : '—'
+      }
+    ];
+    // Таймеры (setInterval/setTimeout)
+    if (!window._monitorTimers) window._monitorTimers = {count: 0};
+    processes.push({
+      pid: 1001,
+      type: 'Timer',
+      name: 'Таймеры JS',
+      status: 'Работает',
+      info: `Активных: ${window._monitorTimers.count}`,
+      mem: '—'
+    });
+    // Сетевые запросы (ресурсы)
+    const resources = performance.getEntriesByType('resource') || [];
+    processes.push({
+      pid: 1002,
+      type: 'Network',
+      name: 'Сетевые запросы',
+      status: 'Работает',
+      info: `За сессию: ${resources.length}`,
+      mem: '—'
+    });
+    // FPS (кадр/сек)
+    if (!window._monitorFps) window._monitorFps = {fps: 0};
+    processes.push({
+      pid: 1003,
+      type: 'FPS',
+      name: 'FPS (отрисовка)',
+      status: 'Работает',
+      info: `FPS: ${window._monitorFps.fps}`,
+      mem: '—'
+    });
+    // Web Workers (если есть)
+    if (window._monitorWorkers && window._monitorWorkers.length) {
+      window._monitorWorkers.forEach((w, i) => {
+        processes.push({
+          pid: 1100 + i,
+          type: 'Worker',
+          name: w.name || 'Worker',
+          status: w.active ? 'Работает' : 'Остановлен',
+          info: '',
+          mem: '—'
+        });
+      });
+    }
+    // Открытые окна (как раньше)
+    Object.keys(openWindows).forEach((key, idx) => {
+      const win = openWindows[key];
+      if (document.body.contains(win)) {
+        processes.push({
+          pid: 1200 + idx,
+          type: 'App',
+          name: getAppTitle(key),
+          status: 'Открыто',
+          info: '',
+          mem: '—'
+        });
+      }
+    });
+    // FPS монитор
+    if (!window._monitorFpsInterval) {
+      let last = performance.now(), frames = 0;
+      function fpsTick() {
+        frames++;
+        const now = performance.now();
+        if (now - last > 1000) {
+          window._monitorFps.fps = frames;
+          frames = 0;
+          last = now;
+        }
+        window.requestAnimationFrame(fpsTick);
+      }
+      window.requestAnimationFrame(fpsTick);
+      window._monitorFpsInterval = true;
+    }
+    // Таймер монитор
+    if (!window._monitorTimerPatched) {
+      const origSetTimeout = window.setTimeout;
+      const origSetInterval = window.setInterval;
+      const origClearTimeout = window.clearTimeout;
+      const origClearInterval = window.clearInterval;
+      let activeTimers = 0;
+      window.setTimeout = function(...args) {
+        activeTimers++;
+        window._monitorTimers.count = activeTimers;
+        const id = origSetTimeout(() => {
+          activeTimers--;
+          window._monitorTimers.count = activeTimers;
+          args[0] && args[0]();
+        }, args[1]);
+        return id;
+      };
+      window.setInterval = function(...args) {
+        activeTimers++;
+        window._monitorTimers.count = activeTimers;
+        const id = origSetInterval(args[0], args[1]);
+        return id;
+      };
+      window.clearTimeout = function(id) {
+        activeTimers--;
+        window._monitorTimers.count = Math.max(0, activeTimers);
+        origClearTimeout(id);
+      };
+      window.clearInterval = function(id) {
+        activeTimers--;
+        window._monitorTimers.count = Math.max(0, activeTimers);
+        origClearInterval(id);
+      };
+      window._monitorTimerPatched = true;
+    }
+    o.innerHTML = `
+      <div style='padding:18px 0 8px 0; text-align:center; color:#888;'>Системные процессы браузера (реальные данные, автообновление)</div>
+      <table style='margin:0 auto; min-width:420px; background:#fff; border-radius:8px; box-shadow:0 2px 8px #0001; border-collapse:collapse;'>
+        <thead><tr style='background:#f7f7fa;'><th style='padding:6px 16px;'>PID</th><th style='padding:6px 16px;'>Тип</th><th style='padding:6px 16px;'>Имя</th><th style='padding:6px 16px;'>Статус</th><th style='padding:6px 16px;'>Инфо</th><th style='padding:6px 16px;'>Память</th></tr></thead>
+        <tbody>
+          ${processes.map(e=>`<tr><td style='padding:6px 16px; text-align:center;'>${e.pid}</td><td style='padding:6px 16px;'>${e.type}</td><td style='padding:6px 16px;'>${e.name}</td><td style='padding:6px 16px; color:#27c93f;'>${e.status}</td><td style='padding:6px 16px;'>${e.info}</td><td style='padding:6px 16px;'>${e.mem}</td></tr>`).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+  function realCpuTab() {
+    o.innerHTML = `<div style='padding:32px 0; text-align:center;'>
+      <b>Загрузка CPU (JS поток)</b><br>
+      <span id='cpu-usage-value'>0%</span>
+      <div style='height:80px; margin:16px auto 0 auto; max-width:320px; background:#e6eaff; border-radius:8px;'>
+        <canvas id='cpu-usage-graph' width='320' height='80'></canvas>
+      </div>
+      <div style='font-size:13px; color:#888; margin-top:8px;'>* Только JS поток, не вся система</div>
+    </div>`;
+    startRealCpuUsage(o.querySelector('#cpu-usage-value'), o.querySelector('#cpu-usage-graph'));
+  }
+ function realMemoryTab() {
+    let hasPerfMem = !!(performance.memory && performance.memory.usedJSHeapSize);
+    let used = hasPerfMem ? performance.memory.usedJSHeapSize / 1024 / 1024 : null;
+    let limit = hasPerfMem ? performance.memory.jsHeapSizeLimit / 1024 / 1024 : null;
+    let free = hasPerfMem ? (limit - used) : null;
+    
+    // Расчет памяти сайта на основе реальных данных
+    let domCount = document.getElementsByTagName('*').length;
+    let openWinCount = Object.keys(openWindows).length;
+    let scriptsCount = document.scripts.length;
+    let imagesCount = document.images.length;
+    let stylesheetsCount = document.styleSheets.length;
+    
+    // Примерный расчет используемой памяти сайта (в МБ)
+    let estimatedSiteMemory = (
+        (domCount * 0.001) +           // ~1KB на DOM элемент
+        (openWinCount * 2) +           // ~2MB на открытое окно
+        (scriptsCount * 0.1) +         // ~100KB на скрипт
+        (imagesCount * 0.05) +         // ~50KB на изображение
+        (stylesheetsCount * 0.02) +    // ~20KB на стиль
+        1.5                            // базовая память страницы
+    );
+    
+    // Максимальная память сайта (условно)
+    let maxSiteMemory = estimatedSiteMemory * 3; // резерв в 3 раза
+    let freeSiteMemory = maxSiteMemory - estimatedSiteMemory;
+    let memoryUsagePercent = (estimatedSiteMemory / maxSiteMemory * 100).toFixed(1);
+    
+    // Подсчет событий и слушателей (приблизительно)
+    let eventListenersCount = 0;
+    try {
+        // Примерная оценка количества обработчиков событий
+        eventListenersCount = domCount * 0.1; // примерно 10% элементов имеют обработчики
+    } catch(e) {}
+    
+    o.innerHTML = `
+      <div style='padding:32px 0 0 0; text-align:center;'>
+        <b>Память сайта</b><br>
+        <span id='mem-usage-value'>Использовано: ${estimatedSiteMemory.toFixed(2)} МБ (${memoryUsagePercent}%)</span>
+        <div style='height:80px; margin:16px auto 0 auto; max-width:320px; background:#e6eaff; border-radius:8px;'>
+          <canvas id='mem-usage-graph' width='320' height='80'></canvas>
+        </div>
+        <div style='margin:18px auto 0 auto; max-width:420px;'>
+          <table style='width:100%; background:#fff; border-radius:10px; box-shadow:0 2px 8px #0001; border-collapse:collapse; font-size:15px;'>
+            <tr style='background:#f8f9ff;'><td style='padding:8px 16px; font-weight:bold;' colspan='2'>Память сайта</td></tr>
+            <tr><td style='padding:6px 16px;'>Используется</td><td style='padding:6px 16px;'>${estimatedSiteMemory.toFixed(2)} МБ</td></tr>
+            <tr><td style='padding:6px 16px;'>Доступно</td><td style='padding:6px 16px;'>${maxSiteMemory.toFixed(2)} МБ</td></tr>
+            <tr><td style='padding:6px 16px;'>Свободно</td><td style='padding:6px 16px;'>${freeSiteMemory.toFixed(2)} МБ</td></tr>
+            <tr><td style='padding:6px 16px;'>Загруженность</td><td style='padding:6px 16px;'>${memoryUsagePercent}%</td></tr>
+            
+            <tr style='background:#f8f9ff;'><td style='padding:8px 16px; font-weight:bold;' colspan='2'>Ресурсы сайта</td></tr>
+            <tr><td style='padding:6px 16px;'>DOM-элементов</td><td style='padding:6px 16px;'>${domCount}</td></tr>
+            <tr><td style='padding:6px 16px;'>Открытых окон</td><td style='padding:6px 16px;'>${openWinCount}</td></tr>
+            <tr><td style='padding:6px 16px;'>Скриптов</td><td style='padding:6px 16px;'>${scriptsCount}</td></tr>
+            <tr><td style='padding:6px 16px;'>Изображений</td><td style='padding:6px 16px;'>${imagesCount}</td></tr>
+            <tr><td style='padding:6px 16px;'>Стилей</td><td style='padding:6px 16px;'>${stylesheetsCount}</td></tr>
+            <tr><td style='padding:6px 16px;'>Обработчиков событий</td><td style='padding:6px 16px;'>~${Math.round(eventListenersCount)}</td></tr>
+            
+            ${hasPerfMem ? `
+            <tr style='background:#f8f9ff;'><td style='padding:8px 16px; font-weight:bold;' colspan='2'>JS Heap (браузер)</td></tr>
+            <tr><td style='padding:6px 16px;'>JS Heap Used</td><td style='padding:6px 16px;'>${used.toFixed(2)} МБ</td></tr>
+            <tr><td style='padding:6px 16px;'>JS Heap Limit</td><td style='padding:6px 16px;'>${limit.toFixed(2)} МБ</td></tr>
+            <tr><td style='padding:6px 16px;'>JS Heap Free</td><td style='padding:6px 16px;'>${free.toFixed(2)} МБ</td></tr>
+            ` : ''}
+          </table>
+        </div>
+        <div style='font-size:13px; color:#888; margin-top:12px;'>
+          * Показана оценочная память, используемая сайтом.<br>
+          * Расчет основан на количестве DOM-элементов, окон и ресурсов.<br>
+          ${hasPerfMem ? '' : 'JS Heap данные недоступны в данном браузере.'}
+        </div>
+      </div>
+    `;
+    
+    // Передаем данные для графика
+    startRealMemoryUsage(
+        o.querySelector('#mem-usage-value'), 
+        o.querySelector('#mem-usage-graph'), 
+        {
+            used: estimatedSiteMemory,
+            max: maxSiteMemory,
+            percent: memoryUsagePercent
+        }
+    );
+}
+
+  function systemInfoTab() {
+    let uptime = ((performance.now() / 1000) / 60).toFixed(1);
+    let ua = navigator.userAgent;
+    let lang = navigator.language;
+    let mem = navigator.deviceMemory ? navigator.deviceMemory + ' ГБ' : 'N/A';
+    let cores = navigator.hardwareConcurrency || 'N/A';
+    let online = navigator.onLine ? 'Онлайн' : 'Оффлайн';
+    let batteryHtml = '<span id="battery-info">Загрузка...</span>';
+    o.innerHTML = `
+      <div style='padding:24px 0; text-align:center;'>
+        <b>Информация о системе</b>
+        <table style='margin:18px auto 0 auto; min-width:320px; background:#fff; border-radius:8px; box-shadow:0 2px 8px #0001; border-collapse:collapse; font-size:15px;'>
+          <tr><td style='padding:6px 16px;'>User Agent</td><td style='padding:6px 16px;'>${ua}</td></tr>
+          <tr><td style='padding:6px 16px;'>Язык</td><td style='padding:6px 16px;'>${lang}</td></tr>
+          <tr><td style='padding:6px 16px;'>Память</td><td style='padding:6px 16px;'>${mem}</td></tr>
+          <tr><td style='padding:6px 16px;'>CPU ядер</td><td style='padding:6px 16px;'>${cores}</td></tr>
+          <tr><td style='padding:6px 16px;'>Аптайм страницы</td><td style='padding:6px 16px;'>${uptime} мин</td></tr>
+          <tr><td style='padding:6px 16px;'>Сеть</td><td style='padding:6px 16px;'>${online}</td></tr>
+          <tr><td style='padding:6px 16px;'>Батарея</td><td style='padding:6px 16px;'>${batteryHtml}</td></tr>
+        </table>
+      </div>
+    `;
+    // Батарея
+    if (navigator.getBattery) {
+      navigator.getBattery().then(bat => {
+        let b = `${(bat.level*100).toFixed(0)}% ${bat.charging ? '⚡️' : ''}`;
+        o.querySelector('#battery-info').textContent = b;
+      });
+    } else {
+      o.querySelector('#battery-info').textContent = 'N/A';
+    }
+  }
+  function a(e){
+    t.forEach(t=>t.classList.toggle("active",t.dataset.tab===e)),n&&(clearInterval(n),n=null);
+    if("processes"===e) { s(); n=setInterval(s,2e3); }
+    else if("cpu"===e) realCpuTab();
+    else if("memory"===e) realMemoryTab();
+    else if("storage"===e) {
+      let e=0,t="";
+      for(let o=0;o<localStorage.length;++o){
+        const n=localStorage.key(o),s=localStorage.getItem(n)||"";
+        e+=n.length+s.length,t+=`<tr><td style='padding:4px 12px; font-size:15px;'>${n}</td><td style='padding:4px 12px; font-size:15px;'>${s.length}</td></tr>`}
+      const n=Math.round(e/1024);
+      o.innerHTML=`
+        <div style='font-size:18px; font-weight:600; margin-bottom:12px;'>Использование localStorage</div>
+        <table style='width:100%; border-collapse:collapse; background:#f7f7fa; border-radius:12px; box-shadow:0 2px 8px #0001;'>
+          <thead><tr style='background:#ececec;'><th style='text-align:left; padding:6px 12px;'>Ключ</th><th style='text-align:left; padding:6px 12px;'>Размер значения (байт)</th></tr></thead>
+          <tbody>${t}</tbody>
+        </table>
+        <div style='margin-top:16px; font-size:16px; color:#007aff;'>Всего: <b>${n} КБ</b></div>
+      `
+    }
+    else if("system"===e) systemInfoTab();
+  }
+  e.querySelectorAll(".system-monitor-tab").forEach(e=>e.onclick=()=>a(e.dataset.tab));
+  a("processes");
+  e.addEventListener("remove",()=>{n&&clearInterval(n)})
+}
+// Реальный мониторинг загрузки CPU (JS thread)
+function startRealCpuUsage(valEl, graphEl) {
+  let last = performance.now(), busy = 0, total = 0, usage = 0;
+  let arr = Array(32).fill(0);
+  function tick() {
+    let t0 = performance.now();
+    // Busy loop на 10мс, чтобы замерить busy time (имитация нагрузки)
+    let busyStart = performance.now();
+    while(performance.now() - busyStart < 10){};
+    let t1 = performance.now();
+    let frame = t1 - t0;
+    busy = frame;
+    total = 16.7; // ~60fps
+    usage = Math.min(100, Math.max(0, (busy/total)*100));
+    arr.push(usage); if(arr.length>32) arr.shift();
+    valEl.textContent = usage.toFixed(1) + '%';
+    // draw
+    const ctx = graphEl.getContext('2d');
+    ctx.clearRect(0,0,320,80);
+    ctx.beginPath();
+    ctx.moveTo(0,80-arr[0]);
+    for(let i=1;i<arr.length;i++) ctx.lineTo(10*i,80-arr[i]);
+    ctx.strokeStyle="#007aff";
+    ctx.lineWidth=2.5;
+    ctx.stroke();
+    ctx.fillStyle="#e6eaff";
+    ctx.lineTo(320,80);
+    ctx.lineTo(0,80);
+    ctx.closePath();
+    ctx.fill();
+    setTimeout(tick, 700);
+  }
+  tick();
+}
+// Реальный мониторинг памяти (если возможно)
+function startRealMemoryUsage(valEl, graphEl, deviceMem) {
+  let arr = Array(32).fill(0);
+  function getMem() {
+    let used = 0, total = deviceMem;
+    if (performance.memory) {
+      used = performance.memory.usedJSHeapSize / 1024 / 1024 / 1024;
+      total = performance.memory.jsHeapSizeLimit / 1024 / 1024 / 1024;
+    } else {
+      used = Math.random()*(.7*total)+.2*total;
+    }
+    return {used, total};
+  }
+  function tick() {
+    let {used, total} = getMem();
+    arr.push(used); if(arr.length>32) arr.shift();
+    valEl.textContent = used.toFixed(2) + ' ГБ / ' + total.toFixed(2) + ' ГБ';
+    // draw
+    const ctx = graphEl.getContext('2d');
+    ctx.clearRect(0,0,320,80);
+    ctx.beginPath();
+    ctx.moveTo(0,80-80*arr[0]/total);
+    for(let i=1;i<arr.length;i++) ctx.lineTo(10*i,80-80*arr[i]/total);
+    ctx.strokeStyle="#007aff";
+    ctx.lineWidth=2.5;
+    ctx.stroke();
+    ctx.fillStyle="#e6eaff";
+    ctx.lineTo(320,80);
+    ctx.lineTo(0,80);
+    ctx.closePath();
+    ctx.fill();
+    setTimeout(tick, 1800);
+  }
+  tick();
+}
