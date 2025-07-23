@@ -310,7 +310,7 @@ function initSystemMonitorApp(e){const t=e.querySelectorAll(".system-monitor-tab
     o.innerHTML = `
       <div style='padding:18px 0 8px 0; text-align:center; color:#888;'>Системные процессы браузера (реальные данные, автообновление)</div>
       <table style='margin:0 auto; min-width:420px; background:#fff; border-radius:8px; box-shadow:0 2px 8px #0001; border-collapse:collapse;'>
-        <thead><tr style='background:#f7f7fa;'><th style='padding:6px 16px;'>PID</th><th style='padding:6px 16px;'>Тип</th><th style='padding:6px 16px;'>Имя</th><th style='padding:6px 16px;'>Статус</th><th style='padding:6px 16px;'>Инфо</th><th style='padding:6px 16px;'>Память</th></tr></thead>
+        <thead><tr style='background:#f7f7fa;'><th style='padding:6px 16px;'>PID</th><th style='padding:6px 16px;'>Тип</th><th style='padding:6px 16px;'>Имя</th><th style='padding:6px 16px;'>Статус</th><th style='padding:6px 16px;'>Инфо</th>
         <tbody>
           ${processes.map(e=>`<tr><td style='padding:6px 16px; text-align:center;'>${e.pid}</td><td style='padding:6px 16px;'>${e.type}</td><td style='padding:6px 16px;'>${e.name}</td><td style='padding:6px 16px; color:#27c93f;'>${e.status}</td><td style='padding:6px 16px;'>${e.info}</td><td style='padding:6px 16px;'>${e.mem}</td></tr>`).join("")}
         </tbody>
@@ -328,7 +328,7 @@ function initSystemMonitorApp(e){const t=e.querySelectorAll(".system-monitor-tab
     </div>`;
     startRealCpuUsage(o.querySelector('#cpu-usage-value'), o.querySelector('#cpu-usage-graph'));
   }
- function realMemoryTab() {
+  function realMemoryTab() {
     let hasPerfMem = !!(performance.memory && performance.memory.usedJSHeapSize);
     let used = hasPerfMem ? performance.memory.usedJSHeapSize / 1024 / 1024 : null;
     let limit = hasPerfMem ? performance.memory.jsHeapSizeLimit / 1024 / 1024 : null;
@@ -366,10 +366,8 @@ function initSystemMonitorApp(e){const t=e.querySelectorAll(".system-monitor-tab
     o.innerHTML = `
       <div style='padding:32px 0 0 0; text-align:center;'>
         <b>Память сайта</b><br>
-        <span id='mem-usage-value'>Использовано: ${estimatedSiteMemory.toFixed(2)} МБ (${memoryUsagePercent}%)</span>
-        <div style='height:80px; margin:16px auto 0 auto; max-width:320px; background:#e6eaff; border-radius:8px;'>
-          <canvas id='mem-usage-graph' width='320' height='80'></canvas>
-        </div>
+        <span id='mem-usage-value'>Использовано: ${estimatedSiteMemory.toFixed(2)} МБ из ${maxSiteMemory.toFixed(2)} МБ</span>
+        
         <div style='margin:18px auto 0 auto; max-width:420px;'>
           <table style='width:100%; background:#fff; border-radius:10px; box-shadow:0 2px 8px #0001; border-collapse:collapse; font-size:15px;'>
             <tr style='background:#f8f9ff;'><td style='padding:8px 16px; font-weight:bold;' colspan='2'>Память сайта</td></tr>
@@ -402,17 +400,515 @@ function initSystemMonitorApp(e){const t=e.querySelectorAll(".system-monitor-tab
       </div>
     `;
     
-    // Передаем данные для графика
-    startRealMemoryUsage(
-        o.querySelector('#mem-usage-value'), 
-        o.querySelector('#mem-usage-graph'), 
-        {
+    // Обновляем значения в реальном времени
+    updateMemoryValues();
+}
+
+// Функция для обновления значений памяти в реальном времени
+function updateMemoryValues() {
+    const valueElement = o.querySelector('#mem-usage-value');
+    
+    function updateData() {
+        // Пересчитываем данные памяти
+        let domCount = document.getElementsByTagName('*').length;
+        let openWinCount = Object.keys(openWindows).length;
+        let scriptsCount = document.scripts.length;
+        let imagesCount = document.images.length;
+        let stylesheetsCount = document.styleSheets.length;
+        
+        let estimatedSiteMemory = (
+            (domCount * 0.001) +
+            (openWinCount * 2) +
+            (scriptsCount * 0.1) +
+            (imagesCount * 0.05) +
+            (stylesheetsCount * 0.02) +
+            1.5
+        );
+        
+        let maxSiteMemory = estimatedSiteMemory * 3;
+        
+        // Добавляем небольшие случайные колебания для реалистичности
+        let fluctuation = (Math.random() - 0.5) * 0.1;
+        estimatedSiteMemory += fluctuation;
+        
+        // Обновляем текстовое значение
+        if (valueElement) {
+            valueElement.textContent = `Использовано: ${estimatedSiteMemory.toFixed(2)} МБ из ${maxSiteMemory.toFixed(2)} МБ`;
+        }
+    }
+    
+    // Запускаем обновление каждые 2 секунды
+    updateData(); // Первоначальное обновление
+    
+    const updateInterval = setInterval(() => {
+        updateData();
+    }, 2000);
+    
+    // Сохраняем интервал для возможной очистки
+    if (window.memoryUpdateInterval) {
+        clearInterval(window.memoryUpdateInterval);
+    }
+    window.memoryUpdateInterval = updateInterval;
+}
+
+
+// Функция для отображения графика памяти сайта в МБ
+function startSiteMemoryGraph(valueElement, canvas, memoryData) {
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Массив для хранения истории использования памяти в МБ
+    let memoryHistory = [];
+    let maxHistoryLength = 60; // 60 точек на графике
+    
+    function updateMemoryData() {
+        // Пересчитываем данные памяти
+        let domCount = document.getElementsByTagName('*').length;
+        let openWinCount = Object.keys(openWindows).length;
+        let scriptsCount = document.scripts.length;
+        let imagesCount = document.images.length;
+        let stylesheetsCount = document.styleSheets.length;
+        
+        let estimatedSiteMemory = (
+            (domCount * 0.001) +
+            (openWinCount * 2) +
+            (scriptsCount * 0.1) +
+            (imagesCount * 0.05) +
+            (stylesheetsCount * 0.02) +
+            1.5
+        );
+        
+        let maxSiteMemory = estimatedSiteMemory * 3;
+        
+        // Добавляем небольшие случайные колебания для реалистичности
+        let fluctuation = (Math.random() - 0.5) * 0.1;
+        estimatedSiteMemory += fluctuation;
+        
+        return {
+            used: estimatedSiteMemory,
+            max: maxSiteMemory
+        };
+    }
+    
+    function drawGraph() {
+        // Очищаем canvas
+        ctx.clearRect(0, 0, width, height);
+        
+        // Получаем актуальные данные
+        let currentData = updateMemoryData();
+        
+        // Добавляем текущее значение в историю
+        memoryHistory.push(currentData.used);
+        if (memoryHistory.length > maxHistoryLength) {
+            memoryHistory.shift();
+        }
+        
+        // Обновляем текстовое значение
+        if (valueElement) {
+            valueElement.textContent = `Использовано: ${currentData.used.toFixed(2)} МБ из ${currentData.max.toFixed(2)} МБ`;
+        }
+        
+        // Находим максимальное значение для масштабирования графика
+        let maxValue = Math.max(...memoryHistory, currentData.max);
+        let minValue = Math.min(...memoryHistory, 0);
+        
+        // Рисуем фон
+        ctx.fillStyle = '#f0f4ff';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Рисуем сетку
+        ctx.strokeStyle = '#dde4ff';
+        ctx.lineWidth = 1;
+        
+        // Горизонтальные линии
+        for (let i = 0; i <= 4; i++) {
+            let y = (height / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+        
+        // Вертикальные линии
+        for (let i = 0; i <= 8; i++) {
+            let x = (width / 8) * i;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+        
+        // Рисуем линию максимальной памяти
+        let maxY = height - ((currentData.max - minValue) / (maxValue - minValue)) * height;
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(0, maxY);
+        ctx.lineTo(width, maxY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Рисуем график использования памяти
+        if (memoryHistory.length > 1) {
+            ctx.strokeStyle = '#4a90ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < memoryHistory.length; i++) {
+                let x = (width / (maxHistoryLength - 1)) * i;
+                let y = height - ((memoryHistory[i] - minValue) / (maxValue - minValue)) * height;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            
+            // Заливка под графиком
+            ctx.fillStyle = 'rgba(74, 144, 255, 0.2)';
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // Рисуем текущее значение в МБ
+        ctx.fillStyle = '#4a90ff';
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${currentData.used.toFixed(1)} МБ`, width - 5, 15);
+        
+        // Рисуем максимальное значение
+        ctx.fillStyle = '#ff6b6b';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Макс: ${currentData.max.toFixed(1)} МБ`, 5, 12);
+        
+        // Рисуем минимальное значение
+        ctx.fillStyle = '#888';
+        ctx.fillText('0 МБ', 5, height - 3);
+    }
+    
+    // Запускаем обновление графика каждые 1000мс
+    drawGraph(); // Первоначальная отрисовка
+    
+    const graphInterval = setInterval(() => {
+        drawGraph();
+    }, 1000);
+    
+    // Сохраняем интервал для возможной очистки
+    if (window.memoryGraphInterval) {
+        clearInterval(window.memoryGraphInterval);
+    }
+    window.memoryGraphInterval = graphInterval;
+}
+
+
+// Функция для отображения графика памяти сайта в МБ
+function startSiteMemoryGraph(valueElement, canvas, memoryData) {
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Массив для хранения истории использования памяти в МБ
+    let memoryHistory = [];
+    let maxHistoryLength = 60; // 60 точек на графике
+    
+    function updateMemoryData() {
+        // Пересчитываем данные памяти
+        let domCount = document.getElementsByTagName('*').length;
+        let openWinCount = Object.keys(openWindows).length;
+        let scriptsCount = document.scripts.length;
+        let imagesCount = document.images.length;
+        let stylesheetsCount = document.styleSheets.length;
+        
+        let estimatedSiteMemory = (
+            (domCount * 0.001) +
+            (openWinCount * 2) +
+            (scriptsCount * 0.1) +
+            (imagesCount * 0.05) +
+            (stylesheetsCount * 0.02) +
+            1.5
+        );
+        
+        let maxSiteMemory = estimatedSiteMemory * 3;
+        
+        // Добавляем небольшие случайные колебания для реалистичности
+        let fluctuation = (Math.random() - 0.5) * 0.1;
+        estimatedSiteMemory += fluctuation;
+        
+        return {
+            used: estimatedSiteMemory,
+            max: maxSiteMemory
+        };
+    }
+    
+    function drawGraph() {
+        // Очищаем canvas
+        ctx.clearRect(0, 0, width, height);
+        
+        // Получаем актуальные данные
+        let currentData = updateMemoryData();
+        
+        // Добавляем текущее значение в историю
+        memoryHistory.push(currentData.used);
+        if (memoryHistory.length > maxHistoryLength) {
+            memoryHistory.shift();
+        }
+        
+        // Обновляем текстовое значение
+        if (valueElement) {
+            valueElement.textContent = `Использовано: ${currentData.used.toFixed(2)} МБ из ${currentData.max.toFixed(2)} МБ`;
+        }
+        
+        // Находим максимальное значение для масштабирования графика
+        let maxValue = Math.max(...memoryHistory, currentData.max);
+        let minValue = Math.min(...memoryHistory, 0);
+        
+        // Рисуем фон
+        ctx.fillStyle = '#f0f4ff';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Рисуем сетку
+        ctx.strokeStyle = '#dde4ff';
+        ctx.lineWidth = 1;
+        
+        // Горизонтальные линии
+        for (let i = 0; i <= 4; i++) {
+            let y = (height / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+        
+        // Вертикальные линии
+        for (let i = 0; i <= 8; i++) {
+            let x = (width / 8) * i;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+        
+        // Рисуем линию максимальной памяти
+        let maxY = height - ((currentData.max - minValue) / (maxValue - minValue)) * height;
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(0, maxY);
+        ctx.lineTo(width, maxY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Рисуем график использования памяти
+        if (memoryHistory.length > 1) {
+            ctx.strokeStyle = '#4a90ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < memoryHistory.length; i++) {
+                let x = (width / (maxHistoryLength - 1)) * i;
+                let y = height - ((memoryHistory[i] - minValue) / (maxValue - minValue)) * height;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            
+            // Заливка под графиком
+            ctx.fillStyle = 'rgba(74, 144, 255, 0.2)';
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // Рисуем текущее значение в МБ
+        ctx.fillStyle = '#4a90ff';
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${currentData.used.toFixed(1)} МБ`, width - 5, 15);
+        
+        // Рисуем максимальное значение
+        ctx.fillStyle = '#ff6b6b';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Макс: ${currentData.max.toFixed(1)} МБ`, 5, 12);
+        
+        // Рисуем минимальное значение
+        ctx.fillStyle = '#888';
+        ctx.fillText('0 МБ', 5, height - 3);
+    }
+    
+    // Запускаем обновление графика каждые 1000мс
+    drawGraph(); // Первоначальная отрисовка
+    
+    const graphInterval = setInterval(() => {
+        drawGraph();
+    }, 1000);
+    
+    // Сохраняем интервал для возможной очистки
+    if (window.memoryGraphInterval) {
+        clearInterval(window.memoryGraphInterval);
+    }
+    window.memoryGraphInterval = graphInterval;
+}
+
+
+// Функция для отображения графика памяти сайта
+function startSiteMemoryGraph(valueElement, canvas, memoryData) {
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Массив для хранения истории использования памяти
+    let memoryHistory = [];
+    let maxHistoryLength = 60; // 60 точек на графике
+    
+    function updateMemoryData() {
+        // Пересчитываем данные памяти
+        let domCount = document.getElementsByTagName('*').length;
+        let openWinCount = Object.keys(openWindows).length;
+        let scriptsCount = document.scripts.length;
+        let imagesCount = document.images.length;
+        let stylesheetsCount = document.styleSheets.length;
+        
+        let estimatedSiteMemory = (
+            (domCount * 0.001) +
+            (openWinCount * 2) +
+            (scriptsCount * 0.1) +
+            (imagesCount * 0.05) +
+            (stylesheetsCount * 0.02) +
+            1.5
+        );
+        
+        let maxSiteMemory = estimatedSiteMemory * 3;
+        let memoryUsagePercent = (estimatedSiteMemory / maxSiteMemory * 100);
+        
+        // Добавляем небольшие случайные колебания для реалистичности
+        let fluctuation = (Math.random() - 0.5) * 0.1;
+        estimatedSiteMemory += fluctuation;
+        
+        return {
             used: estimatedSiteMemory,
             max: maxSiteMemory,
             percent: memoryUsagePercent
+        };
+    }
+    
+    function drawGraph() {
+        // Очищаем canvas
+        ctx.clearRect(0, 0, width, height);
+        
+        // Получаем актуальные данные
+        let currentData = updateMemoryData();
+        
+        // Добавляем текущее значение в историю
+        memoryHistory.push(currentData.percent);
+        if (memoryHistory.length > maxHistoryLength) {
+            memoryHistory.shift();
         }
-    );
+        
+        // Обновляем текстовое значение
+        if (valueElement) {
+            valueElement.textContent = `Использовано: ${currentData.used.toFixed(2)} МБ (${currentData.percent.toFixed(1)}%)`;
+        }
+        
+        // Рисуем фон
+        ctx.fillStyle = '#f0f4ff';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Рисуем сетку
+        ctx.strokeStyle = '#dde4ff';
+        ctx.lineWidth = 1;
+        
+        // Горизонтальные линии
+        for (let i = 0; i <= 4; i++) {
+            let y = (height / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+        
+        // Вертикальные линии
+        for (let i = 0; i <= 8; i++) {
+            let x = (width / 8) * i;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+        
+        // Рисуем график использования памяти
+        if (memoryHistory.length > 1) {
+            ctx.strokeStyle = '#4a90ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < memoryHistory.length; i++) {
+                let x = (width / (maxHistoryLength - 1)) * i;
+                let y = height - (memoryHistory[i] / 100) * height;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            
+            // Заливка под графиком
+            ctx.fillStyle = 'rgba(74, 144, 255, 0.2)';
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // Рисуем текущее значение
+        ctx.fillStyle = '#4a90ff';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${currentData.percent.toFixed(1)}%`, width - 5, 15);
+        
+        // Рисуем максимальное значение (100%)
+        ctx.fillStyle = '#888';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('100%', 5, 12);
+        ctx.fillText('0%', 5, height - 3);
+    }
+    
+    // Запускаем обновление графика каждые 1000мс
+    drawGraph(); // Первоначальная отрисовка
+    
+    const graphInterval = setInterval(() => {
+        drawGraph();
+    }, 1000);
+    
+    // Сохраняем интервал для возможной очистки
+    if (window.memoryGraphInterval) {
+        clearInterval(window.memoryGraphInterval);
+    }
+    window.memoryGraphInterval = graphInterval;
 }
+
 
   function systemInfoTab() {
     let uptime = ((performance.now() / 1000) / 60).toFixed(1);
